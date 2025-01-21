@@ -1,0 +1,8 @@
+{
+  "name": "agentic-docs",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/tfcbot/agentic-docs.git",
+  "author": "tfcbot <admin@blurware.com>",
+  "license": "MIT"
+}
