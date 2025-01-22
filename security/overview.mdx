@@ -1,0 +1,54 @@
+---
+title: 'Security Overview'
+description: 'Understanding security in Agentic Team OS'
+---
+
+# Security Overview
+
+<Warning>
+Agentic Team OS provides a foundation for building secure applications, but does not come pre-configured with enterprise security controls. You are responsible for implementing and maintaining appropriate security measures for your specific use cases.
+</Warning>
+
+## Security Model
+
+Agentic Team OS follows a shared responsibility model where security is distributed between:
+
+1. **Your Team**
+   - Application security
+   - Data security
+   - Access controls
+   - Compliance requirements
+
+2. **AWS Platform**
+   - Infrastructure security
+   - Network security
+   - Physical security
+   - Service availability
+
+3. **Service Providers**
+   - Clerk: Authentication
+   - Stripe: Payments
+   - Unkey: API keys
+   - Cloudflare: CDN
+
+## Service Provider Security
+
+### AWS
+- [AWS Security Documentation](https://docs.aws.amazon.com/security/)
+- [AWS Security Best Practices](https://aws.amazon.com/architecture/security-identity-compliance/)
+- [AWS Compliance Programs](https://aws.amazon.com/compliance/programs/)
+
+### Clerk
+- [Clerk Security Overview](https://clerk.com/docs/security/overview)
+- [Clerk Compliance](https://clerk.com/docs/security/compliance)
+
+### Stripe
+- [Stripe Security](https://stripe.com/docs/security)
+- [Stripe PCI Compliance](https://stripe.com/docs/security/pci-compliance)
+
+### Unkey
+- [Unkey Security](https://www.unkey.dev/docs/security)
+
+## Next Steps
+
+- [Self Hosting](/security/self-hosting) 

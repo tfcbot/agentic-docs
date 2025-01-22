@@ -1,0 +1,79 @@
+---
+title: 'Security'
+---
+
+<Warning>
+Agentic Team OS provides a foundation for building secure applications, but does not come pre-configured with enterprise security controls. You are responsible for implementing and maintaining appropriate security measures for your specific use cases.
+</Warning>
+
+## Self-Hosted Architecture
+
+Agentic Team OS is designed to be self-hosted on your AWS infrastructure, giving you complete control over your security posture. This means:
+
+1. **Data Control**
+   - All data remains within your AWS account
+   - You control data residency and compliance
+   - Full access to AWS security features
+   - Custom encryption and key management
+
+2. **Infrastructure Control**
+   - Deploy in your own VPC
+   - Configure network security
+   - Manage access controls
+   - Set up monitoring and auditing
+
+3. **Service Integration**
+   - Authentication handled by Clerk
+   - Payments processed by Stripe
+   - API keys managed by Unkey
+   - Infrastructure managed by AWS
+
+## Security Responsibilities
+
+### Your Responsibilities
+- VPC configuration
+- Network security
+- Data encryption
+- Access controls
+- Monitoring setup
+- Compliance requirements
+- Security testing
+- Incident response
+
+### Managed by AWS
+- Physical security
+- Network infrastructure
+- Compute infrastructure
+- Storage infrastructure
+- Database infrastructure
+- Identity infrastructure
+
+### Handled by Service Providers
+- Clerk: User authentication and session management
+- Stripe: Payment processing and PCI compliance
+- Unkey: API key management and rate limiting
+- Cloudflare: CDN and DDoS protection
+
+## Service Provider Security Documentation
+
+### AWS
+- [AWS Security Documentation](https://docs.aws.amazon.com/security/)
+- [AWS Security Best Practices](https://aws.amazon.com/architecture/security-identity-compliance/)
+- [AWS Compliance Programs](https://aws.amazon.com/compliance/programs/)
+
+### Clerk
+- [Clerk Security Overview](https://clerk.com/docs/security/overview)
+- [Clerk Compliance](https://clerk.com/docs/security/compliance)
+
+### Stripe
+- [Stripe Security](https://stripe.com/docs/security)
+- [Stripe PCI Compliance](https://stripe.com/docs/security/pci-compliance)
+
+### Unkey
+- [Unkey Security](https://www.unkey.dev/docs/security)
+
+## Next Steps
+
+- [Configure AWS](/essentials/configuration/aws)
+- [Set up Clerk](/essentials/configuration/clerk)
+- [Configure Unkey](/essentials/configuration/unkey) 

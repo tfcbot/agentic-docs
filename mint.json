@@ -1,18 +1,18 @@
 {
   "$schema": "https://mintlify.com/schema.json",
-  "name": "Agentic Templates",
+  "name": "Agentic Team OS",
   "logo": {
     "dark": "/logo/dark.svg",
     "light": "/logo/light.svg"
   },
   "favicon": "/favicon.svg",
   "colors": {
-    "primary": "#0D9373",
-    "light": "#07C983",
-    "dark": "#0D9373",
+    "primary": "#3B82F6",
+    "light": "#60A5FA",
+    "dark": "#2563EB",
     "anchors": {
-      "from": "#0D9373",
-      "to": "#07C983"
+      "from": "#3B82F6",
+      "to": "#60A5FA"
     }
   },
   "topbarLinks": [
@@ -31,19 +31,22 @@
       "url": "api-reference"
     }
   ],
-  "anchors": [
-    {
-      "name": "Documentation",
-      "icon": "book-open-cover",
-      "url": "https://mintlify.com/docs"
-    }
-  ],
+  "anchors": [],
   "navigation": [
     {
       "group": "Get Started",
       "pages": [
         "introduction",
         "quickstart"
+      ]
+    },
+    {
+      "group": "Concepts",
+      "pages": [
+        "concepts/architecture",
+        "concepts/amu-pattern",
+        "concepts/saas-identity",
+        "concepts/version-control"
       ]
     },
     {
@@ -55,28 +58,42 @@
       ]
     },
     {
-      "group": "Essentials",
+      "group": "Guides",
       "pages": [
-        "essentials/architecture",
-        "essentials/adding-agents",
-        "essentials/deployment"
+        "guides/adding-agents",
+        "guides/deployment",
+        "guides/custom-domain"
       ]
     },
     {
-      "group": "Configuration",
+      "group": "Integrations",
       "pages": [
         "essentials/configuration/clerk",
         "essentials/configuration/aws",
         "essentials/configuration/unkey",
         "essentials/configuration/cloudflare",
         "essentials/configuration/stripe",
+        "essentials/configuration/openai",
         "essentials/configuration/sst"
+      ]
+    },
+    {
+      "group": "Security",
+      "pages": [
+        "security/overview",
+        "security/self-hosting"
+      ]
+    },
+    {
+      "group": "Examples",
+      "pages": [
+        "examples/value-strategist",
+        "examples/tech-strategist",
+        "examples/growth-strategist"
       ]
     }
   ],
   "footerSocials": {
-    "x": "https://x.com/mintlify",
-    "github": "https://github.com/mintlify",
-    "linkedin": "https://linkedin.com/company/mintlify"
+    "github": "https://github.com/tfcbot"
   }
 }

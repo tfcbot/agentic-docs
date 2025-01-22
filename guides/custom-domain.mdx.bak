@@ -1,0 +1,159 @@
+---
+title: 'Custom Domains'
+description: 'Configure custom domains for your Agentic Team OS deployment'
+---
+
+# Custom Domain Setup
+
+This guide explains how to set up custom domains for your Agentic Team OS deployment. We'll cover configuration for all three templates: API, Dashboard, and Landing Page.
+
+## Prerequisites
+
+1. Purchase a domain through Cloudflare
+2. Ensure your domain's DNS is managed by Cloudflare
+3. Have your SST environment variables configured
+
+## Domain Structure
+
+A typical setup includes three subdomains:
+- `api.yourdomain.com` - API Template
+- `app.yourdomain.com` - Dashboard Template
+- `www.yourdomain.com` - Landing Page Template
+
+## Environment Variables
+
+Each template requires specific environment variables for domain configuration:
+
+```bash
+# API Template (.env)
+DOMAIN=api.yourdomain.com
+STAGE=production
+
+# Dashboard Template (.env)
+NEXT_PUBLIC_APP_URL=https://app.yourdomain.com
+DOMAIN=app.yourdomain.com
+STAGE=production
+
+# Landing Page Template (.env)
+NEXT_PUBLIC_WEBSITE_URL=https://www.yourdomain.com
+DOMAIN=www.yourdomain.com
+STAGE=production
+```
+
+## SST Configuration
+
+### API Template
+
+The API template uses SST's Api construct to configure the custom domain:
+
+```typescript
+// sst.config.ts
+const api = new Api(stack, "api", {
+  customDomain: {
+    domainName: process.env.DOMAIN,
+    hostedZone: process.env.HOSTED_ZONE || process.env.DOMAIN,
+  },
+  defaults: {
+    function: {
+      bind: [table],
+    },
+  },
+  routes: {
+    "GET /health": "packages/functions/src/health.handler",
+    // ... other routes
+  },
+});
+```
+
+### Dashboard Template
+
+The Dashboard template uses SST's NextjsSite construct:
+
+```typescript
+// sst.config.ts
+const site = new NextjsSite(stack, "web", {
+  path: ".",
+  customDomain: {
+    domainName: process.env.DOMAIN,
+    hostedZone: process.env.HOSTED_ZONE || process.env.DOMAIN,
+  },
+  environment: {
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+  },
+});
+```
+
+### Landing Page Template
+
+Similar to the Dashboard, the Landing Page uses NextjsSite:
+
+```typescript
+// sst.config.ts
+const site = new NextjsSite(stack, "site", {
+  path: ".",
+  customDomain: {
+    domainName: process.env.DOMAIN,
+    hostedZone: process.env.HOSTED_ZONE || process.env.DOMAIN,
+  },
+  environment: {
+    NEXT_PUBLIC_WEBSITE_URL: process.env.NEXT_PUBLIC_WEBSITE_URL,
+  },
+});
+```
+
+## DNS Configuration
+
+1. **Cloudflare Setup**
+   - Ensure your domain is using Cloudflare nameservers
+   - Set SSL/TLS encryption mode to "Full"
+   - Enable proxying (orange cloud) for each subdomain
+
+2. **DNS Records**
+   - SST will automatically create the necessary DNS records
+   - Verify the records in your Cloudflare DNS settings
+   - Records will be of type CNAME pointing to CloudFront distributions
+
+## SSL Certificates
+
+SST automatically handles SSL certificate provisioning through AWS Certificate Manager:
+1. Creates certificates for each domain
+2. Validates ownership through DNS
+3. Attaches certificates to CloudFront distributions
+
+## Verification
+
+After deployment, verify your domains:
+
+```bash
+# Check API endpoint
+curl https://api.yourdomain.com/health
+
+# Visit dashboard
+open https://app.yourdomain.com
+
+# Visit landing page
+open https://www.yourdomain.com
+```
+
+## Troubleshooting
+
+1. **DNS Issues**
+   - Ensure Cloudflare nameservers are correctly set
+   - Check DNS propagation using `dig` or online tools
+   - Verify DNS records in Cloudflare match SST output
+
+2. **SSL Issues**
+   - Check certificate status in AWS Certificate Manager
+   - Ensure Cloudflare SSL/TLS mode is set to "Full"
+   - Verify certificate validation records in DNS
+
+3. **Deployment Issues**
+   - Check CloudFormation stack events
+   - Verify environment variables are correctly set
+   - Ensure IAM permissions include Route53 and ACM access
+
+## Next Steps
+
+- [Configure AWS](/essentials/configuration/aws)
+- [Configure Cloudflare](/essentials/configuration/cloudflare)
+- [Deployment Guide](/guides/deployment) 

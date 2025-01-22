@@ -1,0 +1,231 @@
+---
+title: 'AMU Pattern'
+description: 'Understanding the Adapter-Metadata-Usecases Pattern'
+---
+
+The AMU (Adapter-Metadata-Usecases) is a general purpose pattern used throughout Agentic Team OS, influenced by hexagonal architecture and ports and adapters pattern. It provides a clear separation of concerns and promotes maintainable, testable code.
+
+## Pattern Overview
+
+<Frame>
+  <img src="/images/amu-pattern.png" alt="AMU Pattern Structure" />
+</Frame>
+
+The pattern consists of three main components:
+
+### 1. Adapters
+
+Adapters handle external interactions and infrastructure concerns:
+- API endpoints and controllers
+- Database repositories
+- External service clients
+- Message queue handlers
+
+```typescript
+// Example adapter for value strategist
+export class ValueStrategistAdapter {
+  constructor(
+    private readonly openAIClient: OpenAIClient,
+    private readonly storageClient: StorageClient
+  ) {}
+
+  async generateStrategy(input: ValueStrategyInput): Promise<string> {
+    // Handle external service interaction
+    return this.openAIClient.generateCompletion({
+      model: "gpt-4",
+      prompt: this.formatPrompt(input)
+    });
+  }
+
+  async storeResult(result: ValueStrategyResult): Promise<void> {
+    // Handle data persistence
+    await this.storageClient.save({
+      partition: "value-strategies",
+      data: result
+    });
+  }
+}
+```
+
+### 2. Metadata
+
+Metadata defines the domain models, types, and interfaces:
+- Data structures
+- Type definitions
+- Validation schemas
+- Domain entities
+
+```typescript
+// Example metadata for value strategist
+export interface ValueStrategyInput {
+  deliverableName: string;
+  applicationIdea: string;
+  idealCustomer: string;
+  problem: string;
+  solution: string;
+}
+
+export interface ValueStrategyResult {
+  id: string;
+  input: ValueStrategyInput;
+  output: {
+    valueProposition: string;
+    benefitBreakdown: string[];
+    marketAnalysis: string;
+    recommendations: string[];
+  };
+  createdAt: Date;
+}
+
+export const ValueStrategySchema = z.object({
+  deliverableName: z.string().min(3),
+  applicationIdea: z.string().min(10),
+  idealCustomer: z.string(),
+  problem: z.string(),
+  solution: z.string()
+});
+```
+
+### 3. Usecases
+
+Usecases implement the business logic and orchestrate the flow:
+- Business rules
+- Domain logic
+- Flow coordination
+- Error handling
+
+```typescript
+// Example usecase for value strategist
+export class GenerateValueStrategyUseCase {
+  constructor(
+    private readonly adapter: ValueStrategistAdapter,
+    private readonly validator: ValidationService
+  ) {}
+
+  async execute(input: ValueStrategyInput): Promise<ValueStrategyResult> {
+    // Validate input
+    this.validator.validate(ValueStrategySchema, input);
+
+    // Generate strategy
+    const strategyContent = await this.adapter.generateStrategy(input);
+
+    // Process and format result
+    const result: ValueStrategyResult = {
+      id: generateUUID(),
+      input,
+      output: this.processStrategyContent(strategyContent),
+      createdAt: new Date()
+    };
+
+    // Store result
+    await this.adapter.storeResult(result);
+
+    return result;
+  }
+
+  private processStrategyContent(content: string): ValueStrategyOutput {
+    // Process and structure the generated content
+    // ...
+  }
+}
+```
+
+## Pattern Benefits
+
+1. **Separation of Concerns**
+   - Clear boundaries between components
+   - Easier to maintain and modify
+   - Better testability
+
+2. **Dependency Inversion**
+   - Business logic depends on abstractions
+   - Infrastructure details are isolated
+   - Easier to swap implementations
+
+3. **Testability**
+   - Business logic can be tested in isolation
+   - Easy to mock external dependencies
+   - Clear component boundaries
+
+## Implementation Example
+
+Here's how the pattern is used in the Value Strategist agent:
+
+```typescript
+// Directory structure
+value-strategist/
+├── adapters/
+│   ├── openai.adapter.ts
+│   ├── storage.adapter.ts
+│   └── api.adapter.ts
+├── metadata/
+│   ├── types.ts
+│   ├── schemas.ts
+│   └── entities.ts
+└── usecases/
+    ├── generate-strategy.usecase.ts
+    └── update-strategy.usecase.ts
+
+// Usage example
+export class ValueStrategistController {
+  constructor(
+    private readonly generateStrategyUseCase: GenerateValueStrategyUseCase
+  ) {}
+
+  async handleStrategyRequest(req: Request): Promise<Response> {
+    try {
+      const result = await this.generateStrategyUseCase.execute(req.body);
+      return new Response(result, 200);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+}
+```
+
+## Best Practices
+
+1. **Keep Components Focused**
+   - Adapters handle external concerns
+   - Metadata defines structures
+   - Usecases contain business logic
+
+2. **Dependency Injection**
+   - Inject dependencies through constructors
+   - Use interfaces for dependencies
+   - Follow IoC principles
+
+3. **Error Handling**
+   - Define domain-specific errors
+   - Handle errors at appropriate levels
+   - Maintain error boundaries
+
+4. **Testing Strategy**
+   - Unit test usecases in isolation
+   - Mock adapters in tests
+   - Integration test full flows
+
+## Common Use Cases
+
+The AMU pattern is used throughout Agentic Team OS:
+
+1. **Agent Plane**
+   - AI agent interactions
+   - Model integrations
+   - Result processing
+
+2. **Control Plane**
+   - User management
+   - Billing operations
+   - System configuration
+
+3. **Orchestrator**
+   - Request routing
+   - Message handling
+   - State management
+
+## Next Steps
+
+- [Architecture Overview](/concepts/architecture)
+- [Adding Agents](/guides/adding-agents)
+- [API Template](/templates/api-template) 

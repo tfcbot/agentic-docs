@@ -1,0 +1,139 @@
+---
+title: 'Tech Strategist'
+description: 'Transform your value proposition into a technical architecture'
+---
+
+# Tech Strategist
+
+The Tech Strategist agent helps you translate your value proposition into a comprehensive technical architecture and implementation strategy.
+
+## Key Features
+
+- Technical stack recommendations
+- Architecture design patterns
+- Infrastructure planning
+- Scalability considerations
+- Security implementation guidelines
+
+## How It Works
+
+1. **Requirements Analysis**
+   The agent analyzes:
+   - Value proposition requirements
+   - Scale and performance needs
+   - Security requirements
+   - Integration points
+
+2. **Architecture Design**
+   The agent generates:
+   - System architecture diagrams
+   - Component relationships
+   - Data flow patterns
+   - API specifications
+
+3. **Implementation Strategy**
+   The agent provides:
+   - Technology stack recommendations
+   - Development roadmap
+   - Resource requirements
+   - Risk mitigation strategies
+
+## Example Usage
+
+```typescript
+import { agentService } from '@/services/agentService';
+
+// Prepare the technical requirements
+const techStrategyInput = {
+  deliverableName: "AI Platform Technical Spec",
+  valueProposition: "Unified AI agent management platform",
+  scaleRequirements: "Support for 1000+ concurrent users",
+  securityNeeds: "Enterprise-grade data protection",
+  integrationPoints: "OpenAI, AWS, Azure services"
+};
+
+// Request technical strategy analysis
+const response = await agentService.handleTechStrategyRequest(
+  userToken,
+  techStrategyInput
+);
+```
+
+## Output Format
+
+The technical specification includes:
+
+1. **Architecture Overview**
+   - System components
+   - Integration patterns
+   - Data flow diagrams
+   - Security architecture
+
+2. **Technology Stack**
+   - Frontend framework
+   - Backend services
+   - Database solutions
+   - Infrastructure components
+
+3. **Implementation Plan**
+   - Development phases
+   - Resource allocation
+   - Timeline estimates
+   - Risk assessment
+
+4. **Technical Guidelines**
+   - Coding standards
+   - Security practices
+   - Performance optimization
+   - Monitoring strategy
+
+## Integration Guide
+
+1. Import the Tech Strategist agent:
+```typescript
+import { techStrategistAgent } from '@/lib/agents';
+```
+
+2. Configure the agent with your requirements:
+```typescript
+const config = {
+  ...techStrategistAgent,
+  credits: 30,
+  available: true
+};
+```
+
+3. Handle the response in your application:
+```typescript
+const handleTechStrategy = async (formData) => {
+  const result = await config.handler(userToken, {
+    payload: { formData }
+  });
+  // Process the technical specification
+};
+```
+
+## Best Practices
+
+1. **Clear Requirements**
+   - Define technical constraints
+   - Specify performance targets
+   - Identify integration needs
+   - Document security requirements
+
+2. **Architecture Review**
+   - Validate component relationships
+   - Assess scalability approach
+   - Review security measures
+   - Check integration patterns
+
+3. **Implementation Planning**
+   - Phase development appropriately
+   - Plan for scalability
+   - Consider security early
+   - Document technical debt
+
+## Next Steps
+
+- [Value Strategist](/examples/value-strategist)
+- [Growth Strategist](/examples/growth-strategist) 

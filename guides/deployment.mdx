@@ -1,0 +1,70 @@
+---
+title: 'Deployments'
+description: 'Setting up automated deployments with SST'
+---
+
+This guide covers setting up automated deployments for your Agentic Templates using SST.
+
+## Development Workflow
+
+1. **Local Development**:
+   - Each developer uses `sst dev` in their own isolated personal stage
+   - Changes are tested locally before pushing to a branch
+
+2. **Branch Strategy**:
+   ```bash
+   main     → Production environment
+   develop  → Staging environment
+   sandbox  → Testing environment
+   ```
+
+3. **Automated Deployments**:
+   ```typescript
+   // sst.config.ts
+   export default $config({
+     app(input) {
+       return {
+         name: "my-agentic-app",
+         stage: {
+           main: "production",
+           develop: "staging",
+           sandbox: "sandbox"
+         }
+       };
+     }
+   });
+   ```
+
+## Environment Configuration
+
+Each stage has its own environment:
+
+```bash
+# .env.production (main branch)
+NEXT_PUBLIC_API_URL=https://api.yourdomain.com
+
+# .env.staging (develop branch)
+NEXT_PUBLIC_API_URL=https://staging-api.yourdomain.com
+
+# .env.sandbox (sandbox branch)
+NEXT_PUBLIC_API_URL=https://sandbox-api.yourdomain.com
+```
+
+## Setting Up Autodeploy
+
+SST Console can automatically deploy your app when changes are pushed to your repository:
+
+1. Connect your GitHub repository to SST Console
+2. Configure deployment targets for each branch
+3. Set up sandbox environment for testing changes
+
+For detailed setup instructions and advanced configurations, refer to:
+- [SST Workflow Documentation](https://sst.dev/docs/workflow)
+- [SST Autodeploy Guide](https://sst.dev/docs/workflow#autodeploy)
+- [SST Console Documentation](https://sst.dev/docs/console)
+
+## Next Steps
+
+- [View Deployment Concepts](/concepts/deployment)
+- [Configure AWS](/essentials/configuration/aws)
+- [Set up SST](/essentials/configuration/sst) 

@@ -1,0 +1,189 @@
+---
+title: 'Code Assistant Example'
+description: 'Building a code assistant using Agentic Templates'
+---
+
+# Code Assistant Example
+
+This example demonstrates how to build an AI-powered code assistant using Agentic Templates.
+
+## Implementation
+
+1. **Agent Definition**:
+```typescript
+// packages/core/src/agents/code-assistant.ts
+import { Agent } from './types';
+import { parseCode, generateCode } from '../utils/code';
+
+export const codeAssistant: Agent = {
+  id: 'code-assistant',
+  name: 'Code Assistant',
+  description: 'Helps with coding tasks and code reviews',
+  
+  config: {
+    model: 'gpt-4-turbo',
+    temperature: 0.3,
+    maxTokens: 4096,
+    systemPrompt: `You are a helpful coding assistant.
+    Provide clear, well-documented code solutions.
+    Follow best practices and explain your changes.`
+  },
+  
+  async process(input, context) {
+    const { task, code, language } = input;
+    
+    // Parse and analyze code
+    const analysis = await parseCode(code, language);
+    
+    // Generate solution
+    const solution = await generateCode(task, {
+      analysis,
+      language,
+      config: this.config
+    });
+    
+    return {
+      code: solution.code,
+      explanation: solution.explanation,
+      suggestions: solution.suggestions
+    };
+  }
+};
+```
+
+2. **Code Analysis**:
+```typescript
+// packages/core/src/utils/code.ts
+import { Parser } from 'tree-sitter';
+import { analyze } from '../services/code-analysis';
+
+export async function parseCode(code: string, language: string) {
+  // Parse code into AST
+  const ast = await Parser.parse(code, language);
+  
+  // Analyze structure
+  const analysis = await analyze(ast);
+  
+  return {
+    structure: analysis.structure,
+    complexity: analysis.complexity,
+    suggestions: analysis.suggestions
+  };
+}
+```
+
+3. **Frontend Integration**:
+```typescript
+// src/components/features/code/CodeEditor.tsx
+'use client';
+
+import { useState } from 'react';
+import { Editor } from '@monaco-editor/react';
+import { useCodeAssistant } from '@/hooks/useCodeAssistant';
+
+export function CodeEditor() {
+  const [code, setCode] = useState('');
+  const { analyze, suggestions, isAnalyzing } = useCodeAssistant();
+  
+  const handleAnalyze = async () => {
+    const result = await analyze({
+      code,
+      language: 'typescript'
+    });
+    
+    // Handle suggestions
+  };
+  
+  return (
+    <div className="space-y-4">
+      <Editor
+        height="400px"
+        language="typescript"
+        value={code}
+        onChange={setCode}
+        theme="vs-dark"
+      />
+      
+      <button
+        onClick={handleAnalyze}
+        disabled={isAnalyzing}
+        className="px-4 py-2 bg-primary text-white rounded"
+      >
+        Analyze Code
+      </button>
+      
+      {suggestions && (
+        <div className="p-4 bg-gray-50 rounded">
+          <h3 className="font-bold">Suggestions</h3>
+          <ul className="list-disc pl-4">
+            {suggestions.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Features
+
+- Code analysis and suggestions
+- Multiple language support
+- Real-time feedback
+- Code generation
+- Best practice enforcement
+- Documentation generation
+
+## Configuration
+
+1. **Environment Variables**:
+```bash
+# .env
+OPENAI_API_KEY=sk-...
+CODE_ANALYSIS_TIMEOUT=30000
+MAX_FILE_SIZE=1000000
+```
+
+2. **Infrastructure**:
+```typescript
+// sst.config.ts
+import { StackContext, Api } from 'sst/constructs';
+
+export function CodeAssistantStack({ stack }: StackContext) {
+  const api = new Api(stack, 'CodeApi', {
+    routes: {
+      'POST /analyze': 'packages/functions/src/code/analyze.handler',
+      'POST /generate': 'packages/functions/src/code/generate.handler',
+      'POST /review': 'packages/functions/src/code/review.handler'
+    }
+  });
+}
+```
+
+## Testing
+
+```typescript
+// packages/core/test/agents/code-assistant.test.ts
+import { codeAssistant } from '../../src/agents/code-assistant';
+
+describe('CodeAssistant', () => {
+  it('analyzes code correctly', async () => {
+    const result = await codeAssistant.process({
+      task: 'Review this code',
+      code: 'function add(a, b) { return a + b; }',
+      language: 'javascript'
+    });
+    
+    expect(result.suggestions).toHaveLength(1);
+    expect(result.explanation).toBeDefined();
+  });
+});
+```
+
+## Next Steps
+
+- [View Document Q&A Example](/examples/document-qa)
+- [Add Custom Agents](/guides/adding-agents)
+- [Return to Templates](/templates/api-template) 
