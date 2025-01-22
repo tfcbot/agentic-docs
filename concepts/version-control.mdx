@@ -1,0 +1,72 @@
+---
+title: 'Version Control'
+description: 'Understanding version control and deployment strategy'
+---
+
+Agentic Templates uses a simple branching model with automated deployments through SST Console.
+
+### Core Branches
+- `main`: Production-ready code
+- `develop`: Integration branch for staging
+- `sandbox`: Testing environment for changes
+
+## Deployment Strategy
+
+Each branch maps to a specific environment:
+
+```typescript
+// sst.config.ts
+export default $config({
+  app(input) {
+    return {
+      name: "my-agentic-app",
+      stage: {
+        main: "production",
+        develop: "staging",
+        sandbox: "sandbox"
+      }
+    };
+  }
+});
+```
+
+### Environment Isolation
+
+Each environment is completely isolated:
+
+This approach enables:
+- Independent deployments per environment
+- Isolated testing and validation
+- Safe experimentation in sandbox
+- Controlled promotion to production
+
+## SST Integration
+
+[SST Console](https://console.sst.dev) manages deployments based on branch:
+
+```typescript
+export default $config({
+  console: {
+    autodeploy: {
+      target(event) {
+        if (event.type === "branch") {
+          switch (event.branch) {
+            case "main":
+              return { stage: "production" };
+            case "develop":
+              return { stage: "staging" };
+            case "sandbox":
+              return { stage: "sandbox" };
+          }
+        }
+      }
+    }
+  }
+});
+```
+
+## Next Steps
+
+- [View Deployment Guide](/guides/deployment)
+- [Configure AWS](/essentials/configuration/aws)
+- [Set up SST](/essentials/configuration/sst) 

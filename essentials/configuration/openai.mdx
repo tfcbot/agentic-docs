@@ -1,0 +1,142 @@
+---
+title: 'OpenAI'
+description: 'Configure OpenAI integration for Agentic Team OS'
+---
+
+# OpenAI Integration
+
+Agentic Team OS uses OpenAI's APIs for AI agent capabilities. This guide explains how to set up and configure OpenAI integration.
+
+## API Key Setup
+
+1. Visit [OpenAI's Platform](https://platform.openai.com/)
+2. Sign up or log in to your account
+3. Navigate to [API Keys](https://platform.openai.com/api-keys)
+4. Click "Create new secret key"
+5. Copy your API key and store it securely
+
+## Environment Configuration
+
+Add your OpenAI API key to each template's `.env` file:
+
+```bash
+OPENAI_API_KEY=sk-your-api-key
+```
+
+<Warning>
+Never commit your API key to version control. Always use environment variables or secure secret management.
+</Warning>
+
+## OpenAI Models
+
+Agentic Team OS supports various OpenAI models:
+
+1. **GPT-4 and GPT-3.5**
+   - Used for natural language processing
+   - Text generation and analysis
+   - [Model documentation →](https://platform.openai.com/docs/models)
+
+2. **Assistants API**
+   - Create persistent AI assistants
+   - Manage assistant state and memory
+   - Handle file uploads and retrieval
+   - [Assistants documentation →](https://platform.openai.com/docs/assistants/overview)
+
+## Using Assistants API
+
+The Assistants API enables more sophisticated agent interactions:
+
+### Creating an Assistant
+
+```typescript
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const assistant = await openai.beta.assistants.create({
+  name: "Value Strategist",
+  instructions: "You are a strategic advisor...",
+  model: "gpt-4-1106-preview",
+  tools: [{ type: "code_interpreter" }]
+});
+```
+
+### Managing Threads
+
+```typescript
+// Create a thread
+const thread = await openai.beta.threads.create();
+
+// Add message to thread
+await openai.beta.threads.messages.create(thread.id, {
+  role: "user",
+  content: "Analyze this business idea..."
+});
+
+// Run the assistant
+const run = await openai.beta.threads.runs.create(thread.id, {
+  assistant_id: assistant.id
+});
+```
+
+### Retrieving Results
+
+```typescript
+// Check run status
+const runStatus = await openai.beta.threads.runs.retrieve(
+  thread.id,
+  run.id
+);
+
+// Get messages after completion
+const messages = await openai.beta.threads.messages.list(
+  thread.id
+);
+```
+
+## Best Practices
+
+1. **API Key Management**
+   - Rotate keys regularly
+   - Use separate keys for development/production
+   - Monitor API usage and costs
+
+2. **Model Selection**
+   - Choose appropriate models for tasks
+   - Consider cost vs. capability tradeoffs
+   - Test with different model versions
+
+3. **Error Handling**
+   - Implement proper rate limiting
+   - Handle API errors gracefully
+   - Add retry logic for failures
+
+## Rate Limits
+
+Be aware of OpenAI's rate limits:
+- [Rate limit documentation →](https://platform.openai.com/docs/guides/rate-limits)
+- Implement appropriate backoff strategies
+- Monitor usage to stay within limits
+
+## Cost Management
+
+Monitor and control costs:
+- [Pricing information →](https://openai.com/pricing)
+- Set up usage alerts
+- Track per-model usage
+- Implement cost allocation tags
+
+## Additional Resources
+
+- [OpenAI Documentation](https://platform.openai.com/docs)
+- [API Reference](https://platform.openai.com/docs/api-reference)
+- [Best Practices](https://platform.openai.com/docs/guides/best-practices)
+- [Models Overview](https://platform.openai.com/docs/models)
+
+## Next Steps
+
+- [Configure AWS](/essentials/configuration/aws)
+- [Configure SST](/essentials/configuration/sst)
+- [Add Agents](/guides/adding-agents) 

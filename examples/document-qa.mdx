@@ -1,0 +1,201 @@
+---
+title: 'Document Q&A Example'
+description: 'Building a document question-answering system using Agentic Templates'
+---
+
+# Document Q&A Example
+
+This example shows how to build a document question-answering system using Agentic Templates.
+
+## Implementation
+
+1. **Agent Definition**:
+```typescript
+// packages/core/src/agents/document-qa.ts
+import { Agent } from './types';
+import { embedDocument, queryEmbeddings } from '../utils/embeddings';
+
+export const documentQA: Agent = {
+  id: 'document-qa',
+  name: 'Document Assistant',
+  description: 'Answers questions about uploaded documents',
+  
+  config: {
+    model: 'gpt-4-turbo',
+    temperature: 0.3,
+    maxTokens: 2048,
+    systemPrompt: `You are a helpful assistant that answers questions about documents.
+    Use the provided context to answer questions accurately.`
+  },
+  
+  async process(input, context) {
+    const { question, documentId } = input;
+    
+    // Get relevant document sections
+    const relevantSections = await queryEmbeddings(question, documentId);
+    
+    // Generate answer using context
+    const answer = await generateAnswer(question, {
+      context: relevantSections,
+      config: this.config
+    });
+    
+    return {
+      answer,
+      sources: relevantSections.map(s => s.metadata)
+    };
+  }
+};
+```
+
+2. **Document Processing**:
+```typescript
+// packages/functions/src/documents/process.ts
+import { embedDocument } from '@my-app/core/utils/embeddings';
+
+export async function processDocument(
+  documentId: string,
+  content: string
+) {
+  // Split into sections
+  const sections = splitIntoSections(content);
+  
+  // Generate embeddings
+  const embeddings = await Promise.all(
+    sections.map(section => embedDocument(section))
+  );
+  
+  // Store in vector database
+  await storeEmbeddings(documentId, embeddings);
+}
+```
+
+3. **Frontend Integration**:
+```typescript
+// src/components/features/documents/QuestionForm.tsx
+'use client';
+
+import { useState } from 'react';
+import { useDocumentQA } from '@/hooks/useDocumentQA';
+
+export function QuestionForm({ documentId }: { documentId: string }) {
+  const [question, setQuestion] = useState('');
+  const { ask, answer, isLoading } = useDocumentQA(documentId);
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!question.trim()) return;
+    
+    await ask(question);
+    setQuestion('');
+  };
+  
+  return (
+    <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <input
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          placeholder="Ask a question about the document..."
+          className="flex-1 p-2 rounded border"
+        />
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="px-4 py-2 bg-primary text-white rounded"
+        >
+          Ask
+        </button>
+      </form>
+      
+      {answer && (
+        <div className="p-4 bg-gray-50 rounded">
+          <p>{answer.text}</p>
+          <div className="mt-2 text-sm text-gray-500">
+            Sources: {answer.sources.join(', ')}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Features
+
+- Document processing and embedding
+- Semantic search
+- Context-aware answers
+- Source attribution
+- Real-time responses
+- Document management
+
+## Configuration
+
+1. **Environment Variables**:
+```bash
+# .env
+OPENAI_API_KEY=sk-...
+PINECONE_API_KEY=your-key
+PINECONE_ENVIRONMENT=us-west1-gcp
+DOCUMENT_CHUNK_SIZE=1000
+```
+
+2. **Infrastructure**:
+```typescript
+// sst.config.ts
+import { StackContext, Table, Bucket, Api } from 'sst/constructs';
+
+export function DocumentStack({ stack }: StackContext) {
+  // Document storage
+  const bucket = new Bucket(stack, 'Documents');
+  
+  // Document metadata
+  const table = new Table(stack, 'DocumentMeta', {
+    fields: {
+      documentId: 'string',
+      fileName: 'string',
+      uploadedAt: 'number'
+    },
+    primaryIndex: { partitionKey: 'documentId' }
+  });
+  
+  // Document API
+  const api = new Api(stack, 'DocumentApi', {
+    defaults: {
+      function: {
+        bind: [bucket, table]
+      }
+    },
+    routes: {
+      'POST /documents': 'packages/functions/src/documents/upload.handler',
+      'POST /documents/{id}/ask': 'packages/functions/src/documents/ask.handler'
+    }
+  });
+}
+```
+
+## Testing
+
+```typescript
+// packages/core/test/agents/document-qa.test.ts
+import { documentQA } from '../../src/agents/document-qa';
+
+describe('DocumentQA', () => {
+  it('answers questions with context', async () => {
+    const result = await documentQA.process({
+      question: 'What is the main topic?',
+      documentId: 'test-doc'
+    });
+    
+    expect(result.answer).toBeDefined();
+    expect(result.sources).toHaveLength(1);
+  });
+});
+```
+
+## Next Steps
+
+- [View Code Assistant Example](/examples/code-assistant)
+- [Add Custom Agents](/guides/adding-agents)
+- [Return to Templates](/templates/api-template) 

@@ -12,7 +12,7 @@ SST automates AWS infrastructure provisioning for your Agentic Templates through
 1. [Set up AWS Accounts](https://sst.dev/docs/aws-accounts)
    - Create management account
    - Configure AWS Organizations
-   - Set up dev and prod accounts
+   - Set up sandbox, dev, and prod accounts
    - Enable IAM Identity Center
 
 2. [Configure IAM Credentials](https://sst.dev/docs/iam-credentials)
@@ -22,60 +22,34 @@ SST automates AWS infrastructure provisioning for your Agentic Templates through
 
 ## Environment Configuration
 
-Configure AWS profiles in `~/.aws/config`:
+Configure AWS profiles in `~/.aws/credentials`:
 ```bash
-[sso-session your-company]
-sso_start_url = https://your-company.awsapps.com/start
-sso_region = us-east-1
+[sandbox]
+aws_access_key_id=<access-key-id>
+aws_secret_access_key=<secret-access-key>
+aws_session_token=<session-token>
+region=<region>
 
-[profile your-company-dev]
-sso_session = your-company
-sso_account_id = <dev-account-id>
-sso_role_name = AdministratorAccess
-region = us-east-1
+[dev]
+aws_access_key_id=<access-key-id>
+aws_secret_access_key=<secret-access-key>
+aws_session_token=<session-token>
+region=<region>
 
-[profile your-company-production]
-sso_session = your-company
-sso_account_id = <prod-account-id>
-sso_role_name = AdministratorAccess
-region = us-east-1
+[prod]
+aws_access_key_id=<access-key-id>
+aws_secret_access_key=<secret-access-key>
+aws_session_token=<session-token>
+region=<region>
 ```
 
-## SST Configuration
+## Set your AWS profile
 
-Update your `sst.config.ts` to use the correct AWS profile:
-```typescript
-export default $config({
-  app(input) {
-    return {
-      name: "my-agentic-app",
-      providers: {
-        aws: {
-          profile: input.stage === "production" 
-            ? "your-company-production" 
-            : "your-company-dev"
-        }
-      }
-    };
-  }
-});
-```
-
-## Usage
-
-1. Login to AWS SSO:
 ```bash
-aws sso login --sso-session=your-company
+export AWS_PROFILE=<profile-name>
 ```
 
-2. Deploy with SST:
-```bash
-# Development
-sst dev
 
-# Production
-sst deploy --stage production
-```
 
 ## Best Practices
 

@@ -1,0 +1,157 @@
+---
+title: 'Adding New Agents'
+description: 'Guide to adding new AI agents to your application'
+---
+
+This guide walks you through the process of adding new AI agents to your Agentic Templates application.
+
+## Agent Structure
+
+Each agent is defined as a standalone module:
+
+```typescript
+// packages/core/src/agents/code-assistant.ts
+import { Agent, AgentConfig } from './types';
+
+export const codeAssistant: Agent = {
+  id: 'code-assistant',
+  name: 'Code Assistant',
+  description: 'Helps with coding tasks and code reviews',
+  
+  // Agent configuration
+  config: {
+    model: 'gpt-4-turbo',
+    temperature: 0.7,
+    maxTokens: 4096
+  } as AgentConfig,
+  
+  // Agent implementation
+  async process(input, context) {
+    // Agent logic here
+  }
+};
+```
+
+## Implementation Steps
+
+1. **Create Agent Module**:
+   ```bash
+   # Create new agent file
+   touch packages/core/src/agents/my-agent.ts
+   ```
+
+2. **Define Agent Interface**:
+   ```typescript
+   import { Agent } from './types';
+   
+   export const myAgent: Agent = {
+     id: 'my-agent',
+     name: 'My Agent',
+     description: 'What my agent does',
+     
+     config: {
+       // Agent configuration
+     },
+     
+     async process(input, context) {
+       // Agent implementation
+     }
+   };
+   ```
+
+3. **Register Agent**:
+   ```typescript
+   // packages/core/src/agents/index.ts
+   import { myAgent } from './my-agent';
+   
+   export const agents = {
+     // ... existing agents
+     myAgent
+   };
+   ```
+
+## Agent Configuration
+
+Configure agent behavior through environment variables:
+
+```bash
+# .env
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-...
+MY_AGENT_CONFIG={"temperature":0.7}
+```
+
+## Testing Agents
+
+1. **Unit Tests**:
+   ```typescript
+   // packages/core/test/agents/my-agent.test.ts
+   import { myAgent } from '../../src/agents/my-agent';
+   
+   describe('myAgent', () => {
+     it('processes input correctly', async () => {
+       const result = await myAgent.process('test input', {});
+       expect(result).toBeDefined();
+     });
+   });
+   ```
+
+2. **Integration Tests**:
+   ```typescript
+   // packages/functions/test/handlers/my-agent.test.ts
+   import { handler } from '../../src/agents/my-agent';
+   
+   describe('myAgent handler', () => {
+     it('handles requests correctly', async () => {
+       const event = { body: JSON.stringify({ input: 'test' }) };
+       const response = await handler(event);
+       expect(response.statusCode).toBe(200);
+     });
+   });
+   ```
+
+## Best Practices
+
+1. **Error Handling**:
+   ```typescript
+   async process(input, context) {
+     try {
+       // Agent logic
+     } catch (error) {
+       console.error('Agent error:', error);
+       throw new AgentError('Processing failed', { cause: error });
+     }
+   }
+   ```
+
+2. **Input Validation**:
+   ```typescript
+   function validateInput(input: unknown): asserts input is AgentInput {
+     if (!input || typeof input !== 'object') {
+       throw new ValidationError('Invalid input');
+     }
+     // Additional validation
+   }
+   ```
+
+3. **Resource Management**:
+   ```typescript
+   async process(input, context) {
+     // Acquire resources
+     const resources = await acquireResources();
+     
+     try {
+       // Use resources
+       return await processWithResources(input, resources);
+     } finally {
+       // Release resources
+       await releaseResources(resources);
+     }
+   }
+   ```
+
+## Next Steps
+
+- [View Example Agents](/examples/chatbot)
+- [Configure SST](/essentials/configuration/sst)
+- [Return to Quickstart](/quickstart) 

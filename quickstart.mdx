@@ -1,11 +1,10 @@
 ---
 title: 'Quickstart'
-description: 'Get started with Agentic Templates in minutes'
+description: 'Get started with Agentic Team OS in minutes'
 ---
 
-# Quickstart Guide
 
-Follow these steps to set up your complete Agentic Templates environment.
+Follow these steps to set up your complete Agentic Team OS environment.
 
 ## Prerequisites
 
@@ -38,61 +37,42 @@ git clone https://github.com/your-org/agentic-api-template api
 
 ## Environment Configuration
 
-Each template requires specific environment variables and services to be configured. Follow these guides for detailed setup instructions:
+### Auth is Clerk
+```bash
+# Get these from Clerk Dashboard
+CLERK_SECRET_KEY=
+CLERK_PUBLISHABLE_KEY=
+```
 
-### Development Environment
-<Card
-  title="SST Setup"
-  icon="server"
-  href="/essentials/configuration/sst"
->
-  Configure SST for local development and AWS deployment
-</Card>
+### API is Unkey
+```bash
+# Get these from Unkey Dashboard
+UNKEY_API_KEY=
+UNKEY_ROOT_KEY=
+```
 
-### Authentication & User Management
-<Card
-  title="Clerk Setup"
-  icon="key"
-  href="/essentials/configuration/clerk"
->
-  Configure Clerk for authentication and user management
-</Card>
+### Infrastructure is AWS
+```bash
+# Configure via AWS CLI or SST Console
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_REGION=us-east-1
+```
 
-### API & Security
-<CardGroup cols={2}>
-  <Card
-    title="AWS Credentials"
-    icon="aws"
-    href="/essentials/configuration/aws"
-  >
-    Set up AWS credentials for deployment and services
-  </Card>
-  <Card
-    title="Unkey Setup"
-    icon="key-skeleton"
-    href="/essentials/configuration/unkey"
-  >
-    Configure Unkey for API key management
-  </Card>
-</CardGroup>
+### SST Cloudflare
+```bash
+# Get these from Cloudflare Dashboard
+CLOUDFLARE_API_TOKEN=
+CLOUDFLARE_ACCOUNT_ID=
+```
 
-### Infrastructure & Payments
-<CardGroup cols={2}>
-  <Card
-    title="Cloudflare Setup"
-    icon="cloud"
-    href="/essentials/configuration/cloudflare"
-  >
-    Configure Cloudflare for DNS and CDN
-  </Card>
-  <Card
-    title="Stripe Integration"
-    icon="credit-card"
-    href="/essentials/configuration/stripe"
-  >
-    Set up Stripe for payment processing
-  </Card>
-</CardGroup>
+### Payments is Stripe
+```bash
+# Get these from Stripe Dashboard
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_ID=
+```
 
 ## Template Configuration
 
@@ -125,34 +105,28 @@ STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 ```
 
-## Starting the Development Environment
+## Starting Development
 
-1. Start the API with SST:
+1. Start the API:
 ```bash
 cd api
 yarn install
 sst dev
 ```
 
-2. Start the Dashboard with SST (in a new terminal):
+2. Start the Dashboard:
 ```bash
 cd dashboard
 yarn install
 sst dev
 ```
 
-3. Start the Landing Page with SST (in a new terminal):
+3. Start the Landing Page:
 ```bash
 cd landing-page
 yarn install
 sst dev
 ```
-
-SST will:
-- Deploy infrastructure to your personal development stage
-- Start local development servers
-- Set up Live Lambda Development
-- Create VPC tunnels as needed
 
 Your development environment will be available at:
 - Landing Page: http://localhost:3000
@@ -161,6 +135,6 @@ Your development environment will be available at:
 
 ## Next Steps
 
-- [Configure your AI agents](/essentials/adding-agents)
-- [Understand the architecture](/essentials/architecture)
-- [Prepare for deployment](/essentials/deployment)
+- [Configure your AI agents](/guides/adding-agents)
+- [Understand the architecture](/concepts/architecture)
+- [Prepare for deployment](/guides/deployment)

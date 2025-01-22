@@ -1,0 +1,108 @@
+---
+title: 'Self Hosting'
+description: 'Self-hosting Agentic Team OS on AWS'
+---
+
+# Self Hosting
+
+Agentic Team OS is designed to be self-hosted on AWS, giving you complete control over your infrastructure, data, and security posture. Self-hosting is a crucial decision that impacts your organization's security, compliance, and operational capabilities.
+
+## Why Self Host?
+
+Self-hosting your Agentic Team OS deployment provides you with complete control over your security posture. Unlike managed services where security configurations are often predetermined, self-hosting allows you to:
+
+- Implement custom security policies that align with your organization's requirements
+- Control where your data resides and how it's protected
+- Configure network access and isolation according to your security model
+- Maintain compliance with specific industry regulations and standards
+
+## Infrastructure as Code with SST
+
+Agentic Team OS uses SST (Serverless Stack Toolkit) to enable seamless self-hosting on AWS. SST provides several key advantages:
+
+### Infrastructure Definition
+SST allows you to define your entire infrastructure as code using TypeScript or JavaScript. This means your infrastructure configuration is:
+- Version controlled alongside your application code
+- Repeatable across different environments
+- Auditable for security compliance
+- Testable before deployment
+
+### Security-First Architecture
+SST helps implement security best practices by:
+- Automatically configuring IAM roles with least-privilege access
+- Setting up secure API endpoints with authentication
+- Managing secrets and environment variables securely
+- Enabling easy configuration of VPC and network isolation
+
+### Environment Management
+With SST, you can maintain separate environments (development, staging, production) with:
+- Isolated resources and configurations
+- Environment-specific security controls
+- Independent scaling and monitoring
+- Separate access controls for each environment
+
+## AWS Integration
+
+When self-hosting on AWS, you gain access to AWS's comprehensive security features:
+
+### Network Security
+Configure your network security with:
+- VPC isolation for your resources
+- Security groups for fine-grained access control
+- Network ACLs for additional network security
+- AWS WAF for web application protection
+
+### Identity and Access
+Implement robust identity and access management using:
+- AWS IAM for resource access control
+- AWS Organizations for multi-account security
+- AWS SSO for team member access
+- Custom authentication flows with Cognito
+
+### Monitoring and Compliance
+Maintain security oversight through:
+- CloudWatch for security monitoring
+- CloudTrail for API activity tracking
+- AWS Config for resource compliance
+- Security Hub for security posture management
+
+## Best Practices for Secure Self-Hosting
+
+### Multi-Account Strategy
+We recommend implementing a multi-account strategy where you separate:
+1. Development workloads from production
+2. Security monitoring and audit functions
+3. Shared services and resources
+4. Production customer-facing services
+
+This separation provides strong security boundaries and helps prevent accidental access or changes to production systems.
+
+### Continuous Security
+Implement a continuous security approach by:
+1. Regularly reviewing and updating security policies
+2. Monitoring for security events and anomalies
+3. Conducting security assessments and penetration testing
+4. Maintaining up-to-date patches and dependencies
+
+### Data Protection
+Protect your data through:
+1. Encryption at rest using AWS KMS
+2. Encryption in transit using TLS
+3. Regular backups with secure storage
+4. Data access logging and auditing
+
+## Getting Started with Self-Hosting
+
+To begin self-hosting Agentic Team OS:
+
+1. Set up your AWS account structure
+2. Configure SST with your security requirements
+3. Deploy your initial infrastructure
+4. Implement monitoring and alerting
+5. Establish operational procedures
+
+For detailed deployment instructions, refer to our deployment guide.
+
+## Next Steps
+
+- [Security Overview](/security/overview) 
