@@ -1,0 +1,138 @@
+---
+title: 'SST'
+description: 'Set up SST for infrastructure and deployment management'
+---
+
+# SST Configuration
+
+[SST (Serverless Stack)](https://sst.dev) is used to manage the development environment and deployment of your Agentic Templates to AWS. It provides Infrastructure as Code (IaC) capabilities and a powerful local development experience.
+
+## Setup Steps
+
+1. Install SST CLI globally:
+```bash
+npm install -g sst
+```
+
+2. Configure your editor:
+   - Ensure TypeScript support is enabled
+   - SST will provide type checking and autocompletion for your `sst.config.ts`
+
+3. Set up AWS credentials:
+   - Configure your AWS credentials locally
+   - SST will use these to deploy resources
+
+## Project Structure
+
+Each template includes an `sst.config.ts` file that defines its infrastructure:
+
+```typescript
+// Example sst.config.ts
+export default $config({
+  app(input) {
+    return {
+      name: "my-agentic-app",
+      providers: {
+        aws: { region: "us-west-2" }
+      }
+    };
+  }
+});
+```
+
+## Development Mode
+
+SST provides a powerful development environment:
+
+```bash
+sst dev
+```
+
+This command:
+- Deploys your app to your personal stage
+- Runs functions locally with Live Lambda
+- Creates tunnels for VPC resources
+- Starts frontend and container services locally
+
+## Deployment Stages
+
+SST supports multiple deployment stages:
+
+1. **Personal Stage** (Default):
+   - Used during `sst dev`
+   - Isolated environment per developer
+   - Named after your local username
+
+2. **Shared Stages**:
+```bash
+sst deploy --stage dev
+sst deploy --stage staging
+sst deploy --stage production
+```
+
+## Resource Management
+
+SST manages AWS resources through code:
+
+```typescript
+// Example of defining AWS resources
+const bucket = new sst.aws.Bucket("MyBucket");
+const api = new sst.aws.Function("MyAPI", {
+  handler: "index.handler",
+  link: [bucket]
+});
+```
+
+### Resource Linking
+
+SST enables resource linking between infrastructure and runtime code:
+
+```typescript
+// Runtime code
+import { Resource } from "sst";
+console.log(Resource.MyBucket.name);
+```
+
+## Best Practices
+
+1. **State Management**:
+   - Don't delete SST state buckets
+   - Avoid manual changes to SST-managed resources
+   - Use `sst refresh` if state gets out of sync
+
+2. **Stage Management**:
+   - Use personal stages for development
+   - Create separate stages for testing and production
+   - Remove unused stages with `sst remove --stage <name>`
+
+3. **Team Workflow**:
+   - Each developer uses their personal stage
+   - Set up auto-deploy for shared stages
+   - Create preview environments for pull requests
+
+## Common Issues
+
+### State Out of Sync
+If your local state gets out of sync:
+```bash
+sst refresh --stage <stage-name>
+```
+
+### Resource Removal
+To protect production resources:
+```typescript
+// sst.config.ts
+removal: input?.stage === "production" ? "retain" : "remove"
+```
+
+### Region Changes
+To change regions:
+1. Remove resources from old region
+2. Update config
+3. Deploy to new region
+
+## Next Steps
+
+- [Configure AWS Credentials](/essentials/configuration/aws)
+- [Set up CI/CD](/essentials/deployment)
+- [Return to Quickstart](/quickstart) 

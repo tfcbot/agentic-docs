@@ -1,0 +1,38 @@
+---
+title: 'Architecture'
+description: 'Understanding the Agentic Template Architecture'
+---
+
+# Architecture Overview
+
+The Agentic Template is built with a modular, microservices-based architecture that emphasizes scalability, maintainability, and extensibility. The system is divided into two main components:
+
+## API Template
+
+The API template follows a clean architecture pattern with the following layers:
+
+- **Agent Plane**: Contains all the AI agent implementations and their supporting infrastructure
+- **Core Domain**: Houses the business logic and domain models
+- **Infrastructure Layer**: Handles external integrations and technical concerns
+
+### Key Components
+
+1. **Order Manager**: Coordinates and tracks agent tasks and deliverables
+2. **Agent Services**: Individual specialized agents (Value Strategist, Technical Strategist, Growth Strategist)
+3. **Repository Layer**: Handles data persistence and retrieval
+
+## Dashboard Template
+
+The dashboard provides a user-friendly interface for interacting with the agents:
+
+- **Agent Interface**: React-based UI for agent interaction
+- **State Management**: Efficient state handling for real-time updates
+- **API Integration**: Seamless communication with the backend services
+
+### Technology Stack
+
+- Backend: Node.js with TypeScript
+- Frontend: React with TypeScript
+- Database: MongoDB
+- Message Queue: Redis
+- Authentication: JWT-based auth system 

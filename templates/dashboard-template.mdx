@@ -1,0 +1,102 @@
+---
+title: 'Dashboard Template'
+description: 'Understanding the Dashboard template structure and concepts'
+---
+
+# Dashboard Template
+
+The Dashboard template is a Next.js application built with SST for infrastructure management. It provides a modern, responsive admin interface for your Agentic application.
+
+## Project Structure
+
+```bash
+agentic-dashboard-template/
+├── src/               # Application source code
+│   ├── app/          # Next.js app directory
+│   ├── components/   # React components
+│   └── lib/          # Utility functions and hooks
+├── tests/            # Test files
+├── .sst/            # SST build artifacts
+├── sst.config.ts    # SST configuration
+├── next.config.js   # Next.js configuration
+└── .env.*           # Environment configurations
+```
+
+## Key Concepts
+
+### Next.js App Router
+
+The template uses Next.js 14 with the App Router for:
+- Server components
+- Route groups
+- Layouts
+- Loading states
+- Error boundaries
+
+### Component Organization
+
+Components are organized by feature and type:
+
+1. **UI Components** (`src/components/ui/`)
+   - Reusable UI elements
+   - Shadcn/ui components
+   - Layout components
+
+2. **Feature Components** (`src/components/features/`)
+   - Business logic components
+   - Feature-specific UI
+   - Integration with API
+
+### Infrastructure Integration
+
+SST manages the infrastructure through `sst.config.ts`:
+
+```typescript
+// Example SST configuration
+export default $config({
+  app(input) {
+    return {
+      name: "dashboard",
+      // Configure custom domains
+      // Set up CDN
+      // Configure authentication
+    };
+  }
+});
+```
+
+### Environment Configuration
+
+Multiple environment files for different stages:
+
+```bash
+.env              # Local development
+.env.test         # Testing environment
+.env.sandbox      # Sandbox/staging
+.env.template     # Template for required variables
+```
+
+## Development Workflow
+
+1. Local Development:
+   ```bash
+   # Start Next.js development server
+   sst bind next dev
+   ```
+
+2. Testing:
+   ```bash
+   # Run tests
+   sst bind jest
+   ```
+
+3. Deployment:
+   - Managed through SST Console
+   - Automatic CDN configuration
+   - Environment variable management
+
+## Next Steps
+
+- [Configure Clerk](/essentials/configuration/clerk)
+- [Set up SST](/essentials/configuration/sst)
+- [Return to Quickstart](/quickstart) 
