@@ -1,0 +1,114 @@
+---
+title: 'Cloudflare'
+description: 'Set up Cloudflare for DNS management and SSL'
+---
+
+# Cloudflare Configuration
+
+[Cloudflare](https://cloudflare.com) provides DNS management, SSL certificates, and CDN services for your Agentic Templates application.
+
+## Domain Setup
+
+1. Purchase Your Domain:
+   - Go to [Cloudflare Registrar](https://www.cloudflare.com/products/registrar/)
+   - Search for your desired domain
+   - Complete the purchase process
+   - Or transfer your existing domain to Cloudflare
+
+2. Configure SSL/TLS:
+   - Navigate to SSL/TLS in your domain dashboard
+   - Change encryption mode to "Full (strict)"
+   - This ensures end-to-end encryption between Cloudflare and your origin server
+
+## API Token Creation
+
+1. Create API Token:
+   - Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
+   - Navigate to "My Profile" → "API Tokens"
+   - Click "Create Token"
+
+2. Configure Token Permissions:
+   ```text
+   # Required Permissions
+   - Access: Organizations, Identity Providers, and Groups:Read
+   - Account Settings:Read
+   - Zone:Read (for your specific domain)
+   ```
+
+3. Set Token Restrictions:
+   - Select your domain under "Zone Resources"
+   - Set appropriate IP address restrictions if needed
+   - Set TTL (Time To Live) if required
+
+4. Generate Token:
+   - Review permissions summary
+   - Create token and copy the value
+   - Store securely - token is only shown once
+
+## Environment Variables
+
+### API Service (.env)
+```bash
+# Cloudflare Configuration
+CLOUDFLARE_API_TOKEN=your_api_token
+CLOUDFLARE_ZONE_ID=your_zone_id        # Found in domain overview
+CLOUDFLARE_ACCOUNT_ID=your_account_id  # Found in account settings
+```
+
+## Verify Token
+
+Test your token using curl:
+```bash
+curl "https://api.cloudflare.com/client/v4/user/tokens/verify" \
+  --header "Authorization: Bearer <your_api_token>"
+```
+
+Expected response:
+```json
+{
+  "success": true,
+  "messages": [
+    {
+      "message": "This API Token is valid and active"
+    }
+  ]
+}
+```
+
+## Best Practices
+
+1. **Security**:
+   - Never commit API tokens to version control
+   - Use environment-specific tokens
+   - Regularly audit token permissions
+   - Enable 2FA on your Cloudflare account
+
+2. **DNS Management**:
+   - Keep DNS records documented
+   - Use appropriate TTL values
+   - Regularly audit DNS records
+
+3. **SSL/TLS**:
+   - Maintain valid certificates
+   - Monitor certificate expiration
+   - Use appropriate SSL mode for your setup
+
+## Common Issues
+
+### SSL Errors
+If you encounter SSL errors:
+1. Verify SSL/TLS mode is set to "Full (strict)"
+2. Check origin server certificate
+3. Ensure DNS records are correct
+
+### API Token Issues
+If token verification fails:
+1. Check token permissions
+2. Verify token hasn't expired
+3. Ensure correct token is being used
+
+## Next Steps
+
+- [Configure Stripe](/essentials/configuration/stripe)
+- [Set up CI/CD](/essentials/deployment)
+- [Return to Quickstart](/quickstart) 

@@ -1,0 +1,90 @@
+---
+title: 'API Template'
+description: 'Understanding the API template structure and concepts'
+---
+
+# API Template
+
+The API template provides a serverless API service built with SST. It follows a modular structure designed for scalability and maintainability.
+
+## Project Structure
+
+```bash
+agentic-api-template/
+├── packages/            # Core packages directory
+│   ├── core/           # Shared business logic
+│   └── functions/      # Lambda function handlers
+├── infra/              # Infrastructure definitions
+├── .sst/              # SST build artifacts
+├── sst.config.ts      # SST configuration
+└── .env.*             # Environment configurations
+```
+
+## Key Concepts
+
+### Packages Organization
+
+The template uses a monorepo structure with two main packages:
+
+1. **Core Package** (`packages/core/`)
+   - Contains shared business logic
+   - Database models and schemas
+   - Utility functions
+   - Service layer implementations
+
+2. **Functions Package** (`packages/functions/`)
+   - Lambda function handlers
+   - API route implementations
+   - Event handlers
+   - WebSocket handlers
+
+### Infrastructure as Code
+
+The `infra/` directory contains all infrastructure definitions:
+
+```typescript
+// Example infrastructure stack
+import { StackContext } from "sst/constructs";
+
+export function API({ stack }: StackContext) {
+  // Define API Gateway
+  // Configure Lambda functions
+  // Set up databases
+  // Configure caching
+}
+```
+
+### Environment Configuration
+
+Multiple environment files for different stages:
+
+```bash
+.env              # Local development
+.env.test         # Testing environment
+.env.sandbox      # Sandbox/staging
+```
+
+## Development Workflow
+
+1. Local Development:
+   ```bash
+   # Start SST in development mode
+   sst dev
+   ```
+
+2. Testing:
+   ```bash
+   # Run tests with environment variables
+   sst bind vitest
+   ```
+
+3. Deployment:
+   - Managed through SST Console
+   - Stage-based deployments
+   - Automatic environment configuration
+
+## Next Steps
+
+- [Configure AWS](/essentials/configuration/aws)
+- [Set up SST](/essentials/configuration/sst)
+- [Return to Quickstart](/quickstart) 

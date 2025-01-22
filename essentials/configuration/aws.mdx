@@ -1,0 +1,101 @@
+---
+title: 'AWS'
+description: 'Set up AWS credentials and services for your Agentic Templates'
+---
+
+# AWS Configuration
+
+SST automates AWS infrastructure provisioning for your Agentic Templates through Infrastructure as Code (IaC). This ensures consistent environments and simplified deployment processes.
+
+## Required Setup
+
+1. [Set up AWS Accounts](https://sst.dev/docs/aws-accounts)
+   - Create management account
+   - Configure AWS Organizations
+   - Set up dev and prod accounts
+   - Enable IAM Identity Center
+
+2. [Configure IAM Credentials](https://sst.dev/docs/iam-credentials)
+   - Set up AWS CLI
+   - Configure SSO access
+   - Set appropriate permissions
+
+## Environment Configuration
+
+Configure AWS profiles in `~/.aws/config`:
+```bash
+[sso-session your-company]
+sso_start_url = https://your-company.awsapps.com/start
+sso_region = us-east-1
+
+[profile your-company-dev]
+sso_session = your-company
+sso_account_id = <dev-account-id>
+sso_role_name = AdministratorAccess
+region = us-east-1
+
+[profile your-company-production]
+sso_session = your-company
+sso_account_id = <prod-account-id>
+sso_role_name = AdministratorAccess
+region = us-east-1
+```
+
+## SST Configuration
+
+Update your `sst.config.ts` to use the correct AWS profile:
+```typescript
+export default $config({
+  app(input) {
+    return {
+      name: "my-agentic-app",
+      providers: {
+        aws: {
+          profile: input.stage === "production" 
+            ? "your-company-production" 
+            : "your-company-dev"
+        }
+      }
+    };
+  }
+});
+```
+
+## Usage
+
+1. Login to AWS SSO:
+```bash
+aws sso login --sso-session=your-company
+```
+
+2. Deploy with SST:
+```bash
+# Development
+sst dev
+
+# Production
+sst deploy --stage production
+```
+
+## Best Practices
+
+1. **Environment Separation**:
+   - Use separate AWS accounts for dev and production
+   - Never deploy to production from local machines
+   - Set up CI/CD for production deployments
+
+2. **Security**:
+   - Follow least privilege principle
+   - Regularly rotate credentials
+   - Enable MFA for all users
+
+3. **Cost Management**:
+   - Set up AWS budgets
+   - Monitor resource usage
+   - Clean up unused resources
+
+## Next Steps
+
+- [Configure Cloudflare](/essentials/configuration/cloudflare)
+- [Set up CI/CD](/essentials/deployment)
+- [Return to Quickstart](/quickstart) 

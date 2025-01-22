@@ -1,86 +1,166 @@
 ---
 title: 'Quickstart'
-description: 'Start building awesome documentation in under 5 minutes'
+description: 'Get started with Agentic Templates in minutes'
 ---
 
-## Setup your development
+# Quickstart Guide
 
-Learn how to update your docs locally and deploy them to the public.
+Follow these steps to set up your complete Agentic Templates environment.
 
-### Edit and preview
+## Prerequisites
 
-<AccordionGroup>
-  <Accordion icon="github" title="Clone your docs locally">
-    During the onboarding process, we created a repository on your Github with
-    your docs content. You can find this repository on our
-    [dashboard](https://dashboard.mintlify.com). To clone the repository
-    locally, follow these
-    [instructions](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
-    in your terminal.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Preview changes">
-    Previewing helps you make sure your changes look as intended. We built a
-    command line interface to render these changes locally. 1. Install the
-    [Mintlify CLI](https://www.npmjs.com/package/mintlify) to preview the
-    documentation changes locally with this command: ``` npm i -g mintlify ```
-    2. Run the following command at the root of your documentation (where
-    `mint.json` is): ``` mintlify dev ```
-  </Accordion>
-</AccordionGroup>
+1. Install SST CLI globally:
+```bash
+npm install -g sst
+```
 
-### Deploy your changes
+2. Install Node.js 18+ and yarn
 
-<AccordionGroup>
+## Project Setup
 
-<Accordion icon="message-bot" title="Install our Github app">
-  Our Github app automatically deploys your changes to your docs site, so you
-  don't need to manage deployments yourself. You can find the link to install on
-  your [dashboard](https://dashboard.mintlify.com). Once the bot has been
-  successfully installed, there should be a check mark next to the commit hash
-  of the repo.
-</Accordion>
-<Accordion icon="rocket" title="Push your changes">
-  [Commit and push your changes to
-  Git](https://docs.github.com/en/get-started/using-git/pushing-commits-to-a-remote-repository#about-git-push)
-  for your changes to update in your docs site. If you push and don't see that
-  the Github app successfully deployed your changes, you can also manually
-  update your docs through our [dashboard](https://dashboard.mintlify.com).
-</Accordion>
+1. Create your project directory:
+```bash
+mkdir my-agentic-project
+cd my-agentic-project
+```
 
-</AccordionGroup>
+2. Clone the template repositories:
+```bash
+# Clone Landing Page Template
+git clone https://github.com/your-org/agentic-landing-page-template landing-page
 
-## Update your docs
+# Clone Dashboard Template
+git clone https://github.com/your-org/agentic-dashboard-template dashboard
 
-Add content directly in your files with MDX syntax and React components. You can use any of our components, or even build your own.
+# Clone API Template
+git clone https://github.com/your-org/agentic-api-template api
+```
 
-<CardGroup>
+## Environment Configuration
 
-<Card title="Style Your Docs" icon="paintbrush" href="/settings/global">
-  Add flair to your docs with personalized branding.
-</Card>
+Each template requires specific environment variables and services to be configured. Follow these guides for detailed setup instructions:
 
+### Development Environment
 <Card
-  title="Add API Endpoints"
-  icon="square-code"
-  href="/api-playground/configuration"
+  title="SST Setup"
+  icon="server"
+  href="/essentials/configuration/sst"
 >
-  Implement your OpenAPI spec and enable API user interaction.
+  Configure SST for local development and AWS deployment
 </Card>
 
+### Authentication & User Management
 <Card
-  title="Integrate Analytics"
-  icon="chart-mixed"
-  href="/analytics/supported-integrations"
+  title="Clerk Setup"
+  icon="key"
+  href="/essentials/configuration/clerk"
 >
-  Draw insights from user interactions with your documentation.
+  Configure Clerk for authentication and user management
 </Card>
 
-<Card
-  title="Host on a Custom Domain"
-  icon="browser"
-  href="/settings/custom-domain/subdomain"
->
-  Keep your docs on your own website's subdomain.
-</Card>
-
+### API & Security
+<CardGroup cols={2}>
+  <Card
+    title="AWS Credentials"
+    icon="aws"
+    href="/essentials/configuration/aws"
+  >
+    Set up AWS credentials for deployment and services
+  </Card>
+  <Card
+    title="Unkey Setup"
+    icon="key-skeleton"
+    href="/essentials/configuration/unkey"
+  >
+    Configure Unkey for API key management
+  </Card>
 </CardGroup>
+
+### Infrastructure & Payments
+<CardGroup cols={2}>
+  <Card
+    title="Cloudflare Setup"
+    icon="cloud"
+    href="/essentials/configuration/cloudflare"
+  >
+    Configure Cloudflare for DNS and CDN
+  </Card>
+  <Card
+    title="Stripe Integration"
+    icon="credit-card"
+    href="/essentials/configuration/stripe"
+  >
+    Set up Stripe for payment processing
+  </Card>
+</CardGroup>
+
+## Template Configuration
+
+### Landing Page (.env)
+```bash
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
+```
+
+### Dashboard (.env)
+```bash
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_UNKEY_API_KEY=...
+```
+
+### API (.env)
+```bash
+PORT=3001
+MONGODB_URI=mongodb://localhost:27017/agentic
+REDIS_URL=redis://localhost:6379
+UNKEY_API_KEY=...
+OPENAI_API_KEY=...
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
+## Starting the Development Environment
+
+1. Start the API with SST:
+```bash
+cd api
+yarn install
+sst dev
+```
+
+2. Start the Dashboard with SST (in a new terminal):
+```bash
+cd dashboard
+yarn install
+sst dev
+```
+
+3. Start the Landing Page with SST (in a new terminal):
+```bash
+cd landing-page
+yarn install
+sst dev
+```
+
+SST will:
+- Deploy infrastructure to your personal development stage
+- Start local development servers
+- Set up Live Lambda Development
+- Create VPC tunnels as needed
+
+Your development environment will be available at:
+- Landing Page: http://localhost:3000
+- Dashboard: http://localhost:3002
+- API: http://localhost:3001
+
+## Next Steps
+
+- [Configure your AI agents](/essentials/adding-agents)
+- [Understand the architecture](/essentials/architecture)
+- [Prepare for deployment](/essentials/deployment)

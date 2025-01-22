@@ -1,0 +1,104 @@
+---
+title: 'Landing Template'
+description: 'Understanding the Landing page template structure and concepts'
+---
+
+# Landing Template
+
+The Landing template is a Next.js application built with SST that serves as your product's public-facing website. It's designed for performance, SEO, and conversion optimization.
+
+## Project Structure
+
+```bash
+agentic-landing-template/
+├── src/               # Application source code
+│   ├── app/          # Next.js app directory
+│   ├── components/   # React components
+│   └── lib/          # Utility functions
+├── public/           # Static assets
+├── .sst/            # SST build artifacts
+├── sst.config.ts    # SST configuration
+├── next.config.js   # Next.js configuration
+└── .env.*           # Environment configurations
+```
+
+## Key Concepts
+
+### Next.js App Router
+
+The template leverages Next.js 14 features for optimal performance:
+- Static and dynamic rendering
+- Image optimization
+- Font optimization
+- Metadata API for SEO
+- Route handlers for API endpoints
+
+### Component Organization
+
+Components are organized by purpose:
+
+1. **Marketing Components** (`src/components/marketing/`)
+   - Hero sections
+   - Feature highlights
+   - Pricing tables
+   - Call-to-action blocks
+
+2. **UI Components** (`src/components/ui/`)
+   - Reusable UI elements
+   - Animations
+   - Interactive elements
+   - Layout components
+
+### Infrastructure Integration
+
+SST manages the infrastructure through `sst.config.ts`:
+
+```typescript
+// Example SST configuration
+export default $config({
+  app(input) {
+    return {
+      name: "landing",
+      // Configure custom domains
+      // Set up CDN
+      // Configure analytics
+    };
+  }
+});
+```
+
+### Environment Configuration
+
+Multiple environment files for different stages:
+
+```bash
+.env              # Local development
+.env.test         # Testing environment
+.env.sandbox      # Sandbox/staging
+.env.template     # Template for required variables
+```
+
+## Development Workflow
+
+1. Local Development:
+   ```bash
+   # Start Next.js development server
+   sst bind next dev
+   ```
+
+2. Testing:
+   ```bash
+   # Run tests
+   sst bind jest
+   ```
+
+3. Deployment:
+   - Managed through SST Console
+   - Automatic CDN configuration
+   - Environment variable management
+
+## Next Steps
+
+- [Configure Clerk](/essentials/configuration/clerk)
+- [Set up SST](/essentials/configuration/sst)
+- [Return to Quickstart](/quickstart) 
