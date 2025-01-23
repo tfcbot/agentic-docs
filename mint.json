@@ -34,7 +34,7 @@
   "anchors": [],
   "navigation": [
     {
-      "group": "Get Started",
+      "group": "Start Here",
       "pages": [
         "introduction",
         "quickstart"

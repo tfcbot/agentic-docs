@@ -5,8 +5,13 @@ description: 'Understanding the core architecture of Agentic Templates'
 
 
 
-Agentic Team OS follows a modular, microservices-inspired architecture where each template is an independent deployment unit. This design enables scalability, maintainability, and team autonomy.
+Agentic Team OS follows a modular, microservices-inspired architecture where each template is an independent deployment unit.
 
+This design enables scalability, maintainability, and team autonomy.
+
+The frontend is mostly static and so the core part of the system is the API. 
+
+The API can be logically deconstructed into the following components:
 <Frame>
   <img src="/images/general-architecture.png" alt="Agentic Team OS Architecture" />
 </Frame>
@@ -15,39 +20,27 @@ Agentic Team OS follows a modular, microservices-inspired architecture where eac
 
 ### Orchestrator 
 The orchestrator is the central routing component that:
-- Handles incoming API requests and WebSocket connections
-- Manages authentication and authorization via Clerk
-- Routes requests to appropriate services
-- Maintains connection state and session management
+- Handles incoming API requests
+- Routes requests to different parts of the system
 
-### Topics 
-Topics provide publish/subscribe messaging channels for:
-- Distribute messages to queues
-- Trigger AI Agents
-- Trigger Background Jobs
+### Agents
+The Agents are the workers in the system
+- Agents are responsible for making API calls and processing results.
+- You can control the level of autonomy from simple workflows to fully autonomous agents.
+- They do not necessarily have to be AI agents or be fully autonomous.
 
-### Queues
-Queues enable reliable asynchronous processing for:
-- Background jobs and tasks
-- Message buffering and retry logic
-- Workload distribution across services
 
-### Control Plane 
-The Control Plane manages the system configuration and state:
-- User management and permissions
-- Service configuration and settings
-- System monitoring and metrics
-- Infrastructure provisioning via AWS
-
-### Agent Plane 
-The Agent Plane handles AI agent execution and orchestration:
-- Agent task scheduling and execution
-- Model inference and API calls
-- Result processing and storage
-- Agent state management
+### Resources 
+The Resources are any pooled databases, storage or third party services. 
+- Pooled resources are partioned by user attributes using SaaS Identity.
+- Resources are accessed by the Agent Plane or Control Plane through repository patterns.
 
 
 ## Order Processing
+
+The Agentic Team OS under the hood is a order processing system. A order is a request incoming to the API. Orders can be processed in two ways:
+- Synchronous processing as a Request Flow 
+- Asynchronous processing as an Event Flow
 
 ### Request Flow
 
@@ -81,33 +74,10 @@ The event flow demonstrates how different components interact through events:
    - The Control Plane and Agent Plane subscribe to relevant queues
    - Messages flow through the system in a decoupled manner
 
-## Next Steps
+## Resillancy
 
-<CardGroup cols={2}>
-  <Card
-    title="Integrations"
-    icon="gear"
-    href="/essentials/configuration/aws"
-  >
-    Configure your integrations
-  </Card>
-  <Card
-    title="Examples"
-    icon="code"
-    href="/examples/value-strategist"
-  >
-    View example agents
-  </Card>
-</CardGroup>
+While Agentic Team OS is designed to to help you set up these communication flows, you are responsible for improving the resillancy of the system. 
 
-## Architecture Overview
+You will need to implement measures to handle desired SLAs, SLOs, uptime requirements and diasater recovery.  
 
-<CardGroup cols={2}>
-  <Card
-    title="Core Concepts"
-    icon="cube"
-    href="/concepts/architecture"
-  >
-    Learn about the system architecture
-  </Card>
-</CardGroup> 
+With that said, since Agentic Team OS is built on top of AWS services, you can leverage the high availability and resillancy of AWS to help you achieve your goals. 

@@ -1,84 +1,118 @@
 ---
 title: 'Introduction'
-description: 'Welcome to Agentic Team OS'
+description: 'Agentic Team OS'
 ---
 
-Welcome to Agentic Team OS, an open-source platform for building AI-powered applications with a focus on team collaboration and scalability.
+Welcome to Agentic Team OS, an operating system for building your sales engine with AI Agents. 
 
 ## What Problem Does Agentic Team OS Solve?
 
-Setting up a system to sell access to your AI agents in a self-service manner is complex and requires a lot of trial and error.
+Setting up a system to sell access to your AI agents in a self-service manner is complex and requires a lot of trial and error. 
 
-It requires:
-- Creating a billing and subscription system
-- Manging Users and Authentication
-- Developing a user-friendly interface
-- Orchestrating AI Agents through backend services
+While there are alot of code generation tools they mostly handle the frontend. 
+
+Most people get stuck on the backend and the infrastructure. 
+
+If you were starting an online ecommerce business today you would likely use a platform like Shopify, WooCommerce, or BigCommerce. 
+
+These platforms have a no-code interface but are designed where the code is directly exposed to developers and extensible.
+
+Agentic Team OS takes it a step further and provides a complete ADLC (Agentic Development Lifecycle) for turning your AI Agents into a team that can fufill services for your clients and customers
+
+Common issues with existing AI Agent Platforms:
+- Black Box No-Code/Low-Code Platform that limits your ability to customize
+- Code Generation Tools that fall apart when you need to develop the backend
+- You don't control the monetization model for the Agents you develop. You're left with tiny percentage of revenue from the platform.
 
 
 ## How Does Agentic Team OS Solve This?
 
-Agentic Team OS solves this by providing a complete, ADLC (Agentic Development Lifecycle) for building AI-powered applications.
+Agentic Team OS solves this by providing a complete, ADLC (Agentic Development Lifecycle) for building AI-powered applications. 
 
-Agentic Team OS helps you set up a modular and clean infrastructure foundation that makes it easy to:
+It is designed to do 90% of the heavy lifting and let you focus on just adding your own custom logic.
+
+Agentic Team OS helps you set up a modular and clean architecture foundation that makes it easy to:
 - Add new AI agents in a plug-and-play fashion
 - Integrate with essential services (auth, billing, monitoring)
 - Scale your infrastructure automatically
 - Manage multiple environments
-- Monitor agent performance and usage
 - Handle customer billing and subscriptions
 
 ## Who Is This For?
 
-Agentic Team OS is designed for when:
-- You need more control beyond what existing solutions provide
-- You have existing deliverables you can automate with agents
+Agentic Team OS is designed for those who:
+- Want to sell access to their AI agents in a self-service manner using modern pricing models. 
+- Want direct control over their backend and infrastructure to create a unique experience for their customers
+- Want to build a business around AI Agents as a team and have struggle to find a good fit solution. 
 
-## How Does It Work?
-
-Agentic Team OS is built on cloud-native principles:
-
-1. **Serverless Architecture**
-   - Event-driven processing
-   - Auto-scaling infrastructure
-   - Pay-per-use pricing
-
-2. **Modular Components**
-   - Landing page for customer acquisition
-   - Dashboard for agent management
-   - API service for agent execution
-   - Shared infrastructure for scalability
-
-3. **Integrated Services**
-   - Authentication with Clerk
-   - API management with Unkey
-   - Infrastructure with AWS
-   - CDN with Cloudflare
-   - Payments with Stripe
-
-[Learn more about the architecture →](/concepts/architecture)
 
 ## Why Agentic Team OS?
 
-1. **Agent First**
-   - AI Agents are a first class citizen in the system
-   - Easily add new agents and services
-   - API first approach to agent development
+ **Saves you Time and Money**
 
-2. **Business Focused**
-   - Pre-built templates for common use cases
-   - Integrated authentication and user management
-   - Pre-configured subscription and credit system for AI agents
+This solution normally would cost you a upwards of $5,000 to have a developer build for you. 
 
-3. **Extensible**
-   - Easily add new agents and services
-   - Customize existing agents to fit your needs
-   - Built on directly on top of AWS so you can build anything you need
+Everything is completey open source and with integrations already preconfigured. 
+
+Simply clone the repos and get started with your favorit AI Code Editor. 
+
+**Not just another "all-purpose" Agent Framework**
+
+The templates are designed explicity for the use case of selling access to your AI Agents. 
+
+No clever magic black box, everything is transparent and you can see how it works.
+
+Common sense software engineering practices are applied to each codebase for you to avoid the ai slop cold start.
+
+**Direct Control of Your Monetization Model**
+
+This solution is tightly integrated with AWS and self-hosting is made easy with SST. 
+
+Stripe is used for billing and authentication is handled with Clerk. 
+
+Unkey is used for API Key management. 
+
+With these tools you can easily manage your monetization model and control how your customers pay for services provided by your AI Agents.
+
+You can offer a variables pricing models: 
+- pay-as-you-go
+- pay-per-use
+- upfront credit purchases
+- subscription pricing
+
+## How Does It Work?
+
+Agentic Team OS is divided into 3 main templates available open source on Github. 
+
+Everything is designed to be self-hosted on AWS and deployed within your own AWS accounts.
+
+Each template is designed to be AI Coding Friendly so you don't need to be a 10X developer to get started.
+
+1. **Landing Page**
+   - Your public-facing website to showcase your key benefits
+   - Built with Next.js and Tailwind CSS
+   - Hosted on AWS
+   - Comes with the standard sections your need to get started ( Hero, Features, Pricing, FAQ, Contact )
+
+2. **Dashboard**
+   - Customer portal for managing AI agent usage and settings
+   - Built with Next.js and Tailwind CSS
+   - Hosted on AWS 
+   - Includes authentication, billing, and usage analytics via Stripe and Clerk
+
+3. **API Service**
+   - Backend service to handle AI agent requests
+   - Completely serverless and hosted on AWS
+   - Includes agent orchestration, rate limiting, and monitoring
+
+<Note>
+  Each template is designed to be self-contained and can be deployed independently. 
+  This makes AI Coding easier because the context is clear to LLMs and you can make modular changes independently without redeploying your entire application.
+  Agentic Team OS is basically a modern take on the Backend for Frontend pattern.
+</Note>
 
 
-
-
-## Getting Started
+## Next Steps
 
 Ready to build with Agentic Team OS?
 
@@ -87,7 +121,7 @@ Ready to build with Agentic Team OS?
   icon="rocket"
   href="/quickstart"
 >
-  Set up your development environment in minutes
+ Get your sandbox environment up and running
 </Card>
 
 ## Additional Resources
