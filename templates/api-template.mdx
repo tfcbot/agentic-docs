@@ -11,76 +11,136 @@ The API template provides a serverless API service built with SST. It follows a 
 agentic-api-template/
 ├── packages/          # Core packages directory
 ├── infra/             # Infrastructure definitions
-├── .sst/              # SST build artifacts
 ├── sst.config.ts      # SST configuration
 └── .env.*             # Environment configurations
 ```
 
-## Key Concepts
+I'll explain the key components of the agentic-api-template project:
 
-### Packages Organization
+1. **Project Structure**
+The template follows a modular architecture with these main directories:
+- `/packages` - Core application code
+- `/infra` - Infrastructure definitions using SST
+- `sst.config.ts` - SST configuration
+- `.env.*` - Environment configurations
 
-The template uses a monorepo structure with two main packages:
+2. **Infrastructure (`/infra`)**
 
-1. **Core Package** (`packages/core/`)
-   - Contains shared business logic
-   - Database models and schemas
-   - Utility functions
-   - Service layer implementations
-
-2. **Functions Package** (`packages/functions/`)
-   - Lambda function handlers
-   - API route implementations
-   - Event handlers
-   - WebSocket handlers
-
-### Infrastructure as Code
-
-The `infra/` directory contains all infrastructure definitions:
+Each file in the infra represents a single resource type.
 
 ```typescript
-// Example infrastructure stack
-import { StackContext } from "sst/constructs";
+// Key infrastructure components:
 
-export function API({ stack }: StackContext) {
-  // Define API Gateway
-  // Configure Lambda functions
-  // Set up databases
-  // Configure caching
-}
+// api.ts - Defines API Gateway endpoints and routes
+export const api = new sst.aws.ApiGatewayV2('BackendApi', {
+  domain: {...},
+  cors: {...}
+});
+
+// database.ts - DynamoDB table definitions
+export const usersTable = new aws.dynamodb.Table("Users", {...});
+export const ordersTable = new aws.dynamodb.Table("Orders", {...});
+
+// queues.ts - SQS queue definitions
+export const valueStrategyQueue = new sst.aws.Queue("ValueStrategyQueue", {...});
+
+// topics.ts - SNS topic definitions
+export const orderTopic = new sst.aws.SnsTopic("OrderTopic", {...});
 ```
 
-### Environment Configuration
+3. **Core Package Structure (`/packages/core`)**
+The core package follows a clean architecture pattern:
 
-Multiple environment files for different stages:
+```
+/core
+  /agent-plane           # Agent-related functionality
+  /control-plane         # User, Billing and Settings related functionality
+  /orchestrator          # Orchestration logic  
+```
+Each of these modules are further divided into smaller modules that follow the [AMU pattern](/concepts/amu-pattern). 
 
+4. **Functions (`/packages/functions`)**
+Here is where you define lambda functions that are used to handle API requests.
+These functions import from the core package and are organized into three main API files that mirror the core package structure:
+
+```
+/functions
+├── src/
+│   ├── agent-plane.api.ts     # Agent-related lambda handlers
+│   ├── control-plane.api.ts   # User/billing lambda handlers
+│   ├── orchestrator.api.ts    # API Gateway entry points
+├── package.json               # Dependencies including core package
+├── tsconfig.json             # TypeScript configuration
+└── sst-env.d.ts             # SST generated types
+```
+
+Each API file serves a specific purpose:
+
+- **agent-plane.api.ts**: Contains handlers for agent-specific queues and streams (website review, strategy creation, etc.)
+- **control-plane.api.ts**: Manages user-related functions like authentication, billing, and onboarding
+- **orchestrator.api.ts**: Handles incoming API Gateway requests and routes them to appropriate services
+
+## Utilities (`@utils`)
+
+The utilities package (`@utils`) provides shared functionality and tools used across the application. It's organized into the following key areas:
+
+### Metadata
+Contains schema definitions and types using Zod:
+- `agent.cost.ts` - Defines AI model costs and token pricing
+- `apikey.schema.ts` - API key validation and management schemas
+- `credit.schema.ts` - Credit management schemas
+- `jwt.schema.ts` - JWT token validation schemas
+- `message.schema.ts` - Standard message response schemas
+- `saas-identity.schema.ts` - User identity and validation schemas
+- `tools.schema.ts` - Tool-specific interfaces and schemas
+
+### Tools
+Core utility functions and classes:
+- `ai-middleware.ts` - AI model token cost calculations
+- `api-key-manager.ts` - API key management functionality
+- `credit-manager.ts` - Credit tracking and validation
+- `custom-error.ts` - Error handling and HTTP responses
+- `custom-handler.ts` - Lambda handler wrappers
+- `http-status.ts` - HTTP status codes and response formatting
+- `retry.ts` - Retry logic for API calls
+- `saas-identity.ts` - User identity verification
+
+### Vendors
+Integration with third-party services:
+- `api-key-vendor.ts` - API key service integration (Unkey)
+- `jwt-vendor.ts` - JWT service integration (Clerk)
+
+The utils package is designed to be imported using the `@utils` alias, which is configured in the project's TypeScript configuration:
+
+```typescript
+import { creditManagerTool } from '@utils/tools/credit-manager';
+import { AIModel } from '@utils/metadata/agent.cost';
+import { HttpResponses } from '@utils/tools/http-status';
+```
+
+
+## Running Tests Locally
+
+Create a `env.test` file in the root of the project and add the following variables:
+```
+ACCESS_TOKEN=<test_access_token>
+OPENAI_API_KEY=<test_openai_api_key>
+API_URL=https://sandbox-api.yourdomain.com/v1/
+```
+
+You can generate a test access token from [Clerk](/integrations/clerk)
+
+
+## Deployment
+
+You should have auto-deployment enabled in [SST](/integrations/sst) 
+
+Deployments to development and production are handled automatically.
+
+To deploy to sandbox, you can run:
 ```bash
-.env              # Local development
-.env.test         # Testing environment
-.env.sandbox      # Sandbox/staging
+sst deploy --stage sandbox
 ```
 
-## Development Workflow
+or perform a git push to the `sandbox` branch.
 
-1. Local Development:
-   ```bash
-   # Start SST in development mode
-   sst dev
-   ```
-
-2. Testing:
-   ```bash
-   # Run tests with environment variables
-   sst bind vitest
-   ```
-
-3. Deployment:
-   - Managed through SST Console
-   - Stage-based deployments
-   - Automatic environment configuration
-
-## Next Steps
-
-- [Configure AWS](/essentials/configuration/aws)
-- [Set up SST](/essentials/configuration/sst)
-- [Return to Quickstart](/quickstart) 

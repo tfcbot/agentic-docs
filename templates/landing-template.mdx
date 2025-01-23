@@ -11,91 +11,41 @@ The Landing template is a Next.js application built with SST that serves as your
 
 ```bash
 agentic-landing-template/
-├── src/             # Application source code
+├── app/             # Application source code
 ├── public/          # Static assets
-├── .sst/            # SST build artifacts
 ├── sst.config.ts    # SST configuration
-├── next.config.js   # Next.js configuration
 └── .env.*           # Environment configurations
 ```
 
-## Key Concepts
+### `src/`
 
-### Next.js App Router
+### `public/`
 
-The template leverages Next.js 14 features for optimal performance:
-- Static and dynamic rendering
-- Image optimization
-- Font optimization
-- Metadata API for SEO
-- Route handlers for API endpoints
 
-### Component Organization
+### `sst.config.ts`
 
-Components are organized by purpose:
+### `next.config.js`
 
-1. **Marketing Components** (`src/components/marketing/`)
-   - Hero sections
-   - Feature highlights
-   - Pricing tables
-   - Call-to-action blocks
+### `.env.*`
 
-2. **UI Components** (`src/components/ui/`)
-   - Reusable UI elements
-   - Animations
-   - Interactive elements
-   - Layout components
 
-### Infrastructure Integration
+## Key Libraries
+- Next.js 
+- Tailwind CSS
 
-SST manages the infrastructure through `sst.config.ts`:
+## Environment Configuration
 
-```typescript
-// Example SST configuration
-export default $config({
-  app(input) {
-    return {
-      name: "landing",
-      // Configure custom domains
-      // Set up CDN
-      // Configure analytics
-    };
-  }
-});
-```
+### Sandbox
 
-### Environment Configuration
+### Development
 
-Multiple environment files for different stages:
+### Production
 
-```bash
-.env              # Local development
-.env.test         # Testing environment
-.env.sandbox      # Sandbox/staging
-.env.template     # Template for required variables
-```
 
-## Development Workflow
+## Running Tests Locally
 
-1. Local Development:
-   ```bash
-   # Start Next.js development server
-   sst bind next dev
-   ```
+## Deployment
 
-2. Testing:
-   ```bash
-   # Run tests
-   sst bind jest
-   ```
 
-3. Deployment:
-   - Managed through SST Console
-   - Automatic CDN configuration
-   - Environment variable management
 
-## Next Steps
 
-- [Configure Clerk](/essentials/configuration/clerk)
-- [Set up SST](/essentials/configuration/sst)
-- [Return to Quickstart](/quickstart) 

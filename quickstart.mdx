@@ -1,140 +1,166 @@
 ---
 title: 'Quickstart'
-description: 'Get started with Agentic Team OS in minutes'
+description: 'Setting up your Sandbox Environment'
 ---
 
 
-Follow these steps to set up your complete Agentic Team OS environment.
+Follow these steps to set up your sandbox Agentic Team OS environment. 
+Having a sandbox environment is a great way to test out Agentic Team OS without having to worry about breaking things. 
+The templates come with example agents. You can use these to test out the system.
 
-## Prerequisites
+## What prerequisites do you need? 
 
-1. Install SST CLI globally:
-```bash
-npm install -g sst
-```
+- Code Editor (Cursor AI, Windsurf, VSCode, etc)
+- Node.js 20+
+- Package Manager (Yarn, NPM, PNPM, etc)
+- Dedicated Sandbox AWS Account with AWS SSO
 
-2. Install Node.js 18+ and yarn
+Based on your experience level this process may take you anywhere from  20 mins to a few hours. 
 
-## Project Setup
+<Note>
+  Using Agentic Team OS requires a basic understanding of AWS, SST, Typescript, and Cloud Development. 
+  If you need help getting started or have questions, join the [Community](https://www.skool.com/agent-toolkit) where you can get more access to technical courses to get you up to speed and ask questions.
+</Note>
 
-1. Create your project directory:
+## How to get started?
+
+## 1. Create a new project directory
+
 ```bash
 mkdir my-agentic-project
 cd my-agentic-project
 ```
 
-2. Clone the template repositories:
+## 2. Clone the template repositories:
 ```bash
 # Clone Landing Page Template
-git clone https://github.com/your-org/agentic-landing-page-template landing-page
+gh repo clone tfcbot/agentic-landing-page-template
+```
 
+```bash
 # Clone Dashboard Template
-git clone https://github.com/your-org/agentic-dashboard-template dashboard
+gh repo clone tfcbot/agentic-dashboard-template
+```
 
+```bash
 # Clone API Template
-git clone https://github.com/your-org/agentic-api-template api
+gh repo clone tfcbot/agentic-api-template
 ```
+Go with cloning over forking because you should be making your own significant changes to these templates. 
 
-## Environment Configuration
+Future updates will then not break any custom changes you make. 
 
-### Auth is Clerk
+
+<Note>
+  If you find these templates helpful, please consider giving them a star on GitHub! Your support helps us continue improving Agentic Team OS.
+  
+  - [Landing Page Template ⭐](https://github.com/tfcbot/agentic-landing-page-template)
+  - [Dashboard Template ⭐](https://github.com/tfcbot/agentic-dashboard-template) 
+  - [API Template ⭐](https://github.com/tfcbot/agentic-api-template)
+</Note>
+
+
+## 3. Configure Your Templates
+
+Each template requires a set of environment variables that you need to configure. 
+
+For now you just need to set up the dashboard and api to try out the example agents. 
+
+To get your sandbox environment running your will need to set up a `.env.sandbox` file in each template.
+
+You will also need to set up webhooks for Stripe and Clerk to send events to your API.
+
+Lets start with the environment variables. 
+
+### Dashboard
 ```bash
-# Get these from Clerk Dashboard
-CLERK_SECRET_KEY=
-CLERK_PUBLISHABLE_KEY=
+
+# sst Secrets
+baseDomain=<your-base-domain>
+clerkSecretKey=<your-clerk-secret-key>
+clerkSignInUrl=/sign-in
+clerkSignUpUrl=/sign-up
+clerkPublishableKey=<your-clerk-publishable-key>
+subscriptionManagementUrl=<your-subscription-management-url>
+stripePublishableKey=<your-stripe-publishable-key>
+
+# nextjs variables
+NEXT_API_URL=<your-next-api-url>
+NEXT_PUBLIC_CLERK_WAITLIST_URL=<your-clerk-waitlist-url>
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=<your-clerk-after-sign-in-url>
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=<your-clerk-after-sign-up-url>
 ```
 
-### API is Unkey
+### API
 ```bash
-# Get these from Unkey Dashboard
-UNKEY_API_KEY=
-UNKEY_ROOT_KEY=
+# sst Secrets
+StripeSecretKey=<your-stripe-secret-key>
+StripeWebhookSecret=<your-stripe-webhook-secret>
+PriceID=<your-price-id>
+ClerkClientPublishableKey=<your-clerk-client-publishable-key>
+ClerkClientSecretKey=<your-clerk-client-secret-key>
+ClerkWebhookSecret=<your-clerk-webhook-secret>
+UnkeyRootKey=<your-unkey-root-key>
+UnkeyApiId=<your-unkey-api-id>
+OpenAIApiKey=<your-openai-api-key>
+
+
+## Domain
+CLOUDFLARE_API_TOKEN=<your-cloudflare-api-token>
+BASE_DOMAIN=<your-base-domain>
 ```
 
-### Infrastructure is AWS
+Next you will need to load your secrets into AWS into the sandbox stage. For example to load your secrets for the api 
+
 ```bash
-# Configure via AWS CLI or SST Console
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_REGION=us-east-1
+cd api
+sst secrets load .env.sandbox --stage sandbox
 ```
 
-### SST Cloudflare
+Next you will need to set up webhooks for [Stripe](/integrations/stripe) and [Clerk](/integrations/clerk) to send events to your API. 
+
+For more step-by-step instructions by template, head over to the [Templates](/templates) page. 
+
+## 4. Load your Secrets into AWS 
+
+Once you have your environment variables configured, you need to load them into AWS. 
+
+SST is used to manage your secrets in AWS. Before deploying into an Envrionment you need to load your secrets via the CMD line. 
+
+This will encrypt your secrets in a S3 bucket and make them available to resources in your stage. 
+
 ```bash
-# Get these from Cloudflare Dashboard
-CLOUDFLARE_API_TOKEN=
-CLOUDFLARE_ACCOUNT_ID=
+sst secrets load .env.sst.sandbox --stage sandbox
 ```
 
-### Payments is Stripe
-```bash
-# Get these from Stripe Dashboard
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-STRIPE_PRICE_ID=
-```
 
-## Template Configuration
-
-### Landing Page (.env)
-```bash
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
-```
-
-### Dashboard (.env)
-```bash
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-NEXT_PUBLIC_API_URL=http://localhost:3001
-NEXT_PUBLIC_UNKEY_API_KEY=...
-```
-
-### API (.env)
-```bash
-PORT=3001
-MONGODB_URI=mongodb://localhost:27017/agentic
-REDIS_URL=redis://localhost:6379
-UNKEY_API_KEY=...
-OPENAI_API_KEY=...
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-```
-
-## Starting Development
+## 5. Start your sandbox environment
 
 1. Start the API:
 ```bash
 cd api
 yarn install
-sst dev
+yarn sst dev --stage sandbox
 ```
+This will bring up your API and start listening for events from Stripe and Clerk.
+
+The first time you run this it will take a few minutes to start because it needs to create DNS records. 
 
 2. Start the Dashboard:
 ```bash
 cd dashboard
-yarn install
-sst dev
+yarn dev
 ```
+For now you can just run the dashboard locally. It will still be able to talk to your hosted API. 
 
-3. Start the Landing Page:
-```bash
-cd landing-page
-yarn install
-sst dev
-```
+The URLs will be:
+- Dashboard: http://localhost:3000
+- API: http://sandbox-api.yourdomain.com
 
-Your development environment will be available at:
-- Landing Page: http://localhost:3000
-- Dashboard: http://localhost:3002
-- API: http://localhost:3001
+Navigate to the dashboard, sign up, and you should be able to see the example agents and use them.  
 
 ## Next Steps
 
-- [Configure your AI agents](/guides/adding-agents)
 - [Understand the architecture](/concepts/architecture)
-- [Prepare for deployment](/guides/deployment)
+- [Add Your Own Agents](/guides/adding-agents)
+- [Automate Your Deployment](/guides/deployment)

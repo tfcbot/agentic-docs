@@ -34,7 +34,7 @@
   "anchors": [],
   "navigation": [
     {
-      "group": "Get Started",
+      "group": "Start Here",
       "pages": [
         "introduction",
         "quickstart"
@@ -46,7 +46,7 @@
         "concepts/architecture",
         "concepts/amu-pattern",
         "concepts/saas-identity",
-        "concepts/version-control"
+        "concepts/git-flow"
       ]
     },
     {
