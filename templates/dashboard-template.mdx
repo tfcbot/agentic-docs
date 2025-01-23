@@ -19,81 +19,36 @@ The Dashboard template is a Next.js application built with SST for infrastructur
 └── .env.*           # Environment configurations
 ```
 
-## Key Concepts
+### `src/`
 
-### Next.js App Router
+### `tests/`
 
-The template uses Next.js 14 with the App Router for:
-- Server components
-- Route groups
-- Layouts
-- Loading states
-- Error boundaries
+### `sst.config.ts`
 
-### Component Organization
+### `next.config.js`
 
-Components are organized by feature and type:
+### `.env.*`
 
-1. **UI Components** (`src/components/ui/`)
-   - Reusable UI elements
-   - Shadcn/ui components
-   - Layout components
+## Key Libraries
+- Next.js 
+- Tailwind CSS
+- Clerk Authentication
+- Stripe Billing
 
-2. **Feature Components** (`src/components/features/`)
-   - Business logic components
-   - Feature-specific UI
-   - Integration with API
+## Environment Configuration
 
-### Infrastructure Integration
+### Sandbox
 
-SST manages the infrastructure through `sst.config.ts`:
+### Development
 
-```typescript
-// Example SST configuration
-export default $config({
-  app(input) {
-    return {
-      name: "dashboard",
-      // Configure custom domains
-      // Set up CDN
-      // Configure authentication
-    };
-  }
-});
-```
+### Production
 
-### Environment Configuration
 
-Multiple environment files for different stages:
+## Running Tests Locally
 
-```bash
-.env              # Local development
-.env.test         # Testing environment
-.env.sandbox      # Sandbox/staging
-.env.template     # Template for required variables
-```
 
-## Development Workflow
 
-1. Local Development:
-   ```bash
-   # Start Next.js development server
-   sst bind next dev
-   ```
+## Deployment
 
-2. Testing:
-   ```bash
-   # Run tests
-   sst bind jest
-   ```
 
-3. Deployment:
-   - Managed through SST Console
-   - Automatic CDN configuration
-   - Environment variable management
 
-## Next Steps
-
-- [Configure Clerk](/essentials/configuration/clerk)
-- [Set up SST](/essentials/configuration/sst)
-- [Return to Quickstart](/quickstart) 
