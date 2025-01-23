@@ -16,119 +16,316 @@ The pattern consists of three main components:
 ### 1. Adapters
 
 Adapters handle external interactions and infrastructure concerns:
-- API endpoints and controllers
-- Database repositories
-- External service clients
-- Message queue handlers
+
+This is split into primary and secondary adapters.
+- Primary adapters are for handling incoming requests to the unit. For example a Lambda handler or DynamoDB stream handler. 
+- Secondary adapters are for handling outgoing requests to external services. For example an OpenAI client or a database client.
+
+#### Primary Adapter
+
+Here is an example of a primary adapter in the Orchestrator for an Agent that handles generating a value strategy.
+for a saas founder. 
 
 ```typescript
-// Example adapter for value strategist
-export class ValueStrategistAdapter {
-  constructor(
-    private readonly openAIClient: OpenAIClient,
-    private readonly storageClient: StorageClient
-  ) {}
+/**
+ * Lambda function that handles API Gateway requests for the value strategy service
+ * Demonstrates the primary adapter pattern by:
+ * 1. Authenticating request via SaaS Identity
+ * 2. Enriching request with generated IDs
+ * 3. Receiving external request
+ * 4. Transforming to internal format 
+ * 5. Calling usecase
+ * 6. Transforming response back to HTTP
+ */
+async function valueStrategyLambdaHandler(apiGatewayEvent) {
+  try {
+    // 1. Authentication & Authorization
+    // Verify JWT token and extract claims
+    const token = apiGatewayEvent.headers.Authorization;
+    const identityService = new SaaSIdentityService();
+    const userClaims = await identityService.validateToken(token);
+    
+    if (!userClaims.isValid) {
+      return {
+        statusCode: 401,
+        body: { message: 'Unauthorized' }
+      };
+    }
 
-  async generateStrategy(input: ValueStrategyInput): Promise<string> {
-    // Handle external service interaction
-    return this.openAIClient.generateCompletion({
-      model: "gpt-4",
-      prompt: this.formatPrompt(input)
-    });
-  }
+    // 2. Request Enrichment
+    // Generate unique IDs for tracking and correlation
+    const enrichmentService = new EnrichmentService();
+    const orderId = enrichmentService.generateOrderId(); // e.g. "ord_123xyz..."
+    const deliverableId = enrichmentService.generateDeliverableId(); // e.g. "del_456abc..."
+    
+    // Optional: Add metadata like timestamp, request source, etc
+    const metadata = {
+      requestTimestamp: new Date().toISOString(),
+      sourceIp: apiGatewayEvent.requestContext.identity.sourceIp,
+      userAgent: apiGatewayEvent.requestContext.identity.userAgent
+    };
 
-  async storeResult(result: ValueStrategyResult): Promise<void> {
-    // Handle data persistence
-    await this.storageClient.save({
-      partition: "value-strategies",
-      data: result
-    });
+    // 3. Extract and validate input from HTTP request
+    // Adapts API Gateway event into domain input format
+    const requestBody = parseRequestBody(apiGatewayEvent);
+    const validatedInput = {
+      orderId: orderId, // Generated ID
+      keyId: userClaims.keyId, // From SaaS identity
+      userId: userClaims.userId, // From SaaS identity
+      deliverableId: deliverableId, // Generated ID
+      agentId: requestBody.agentId,
+      deliverableName: requestBody.deliverableName,
+      applicationIdea: requestBody.applicationIdea,
+      idealCustomer: requestBody.idealCustomer,
+      problem: requestBody.problem,
+      solution: requestBody.solution,
+      metadata: metadata // Optional enrichment data
+    };
+
+    // 4. Call domain usecase with validated input
+    // This is where we cross the boundary from external to internal
+    const result = await publishValueStrategyUseCase(validatedInput);
+
+    // 5. Transform usecase result to HTTP response
+    // Adapts domain result back to API format
+    return {
+      statusCode: 200,
+      body: {
+        orderId: result.orderId,
+        deliverableId: result.deliverableId,
+        status: result.orderStatus,
+        createdAt: result.orderCreatedAt,
+        deliverableName: result.deliverableName
+      }
+    };
+
+  } catch (error) {
+    // 6. Error handling and logging
+    // Transforms domain errors to HTTP error responses
+    console.error('Lambda handler error:', error);
+    
+    // Map different error types to appropriate HTTP status codes
+    if (error.name === 'ValidationError') {
+      return {
+        statusCode: 400,
+        body: { message: 'Invalid request parameters' }
+      };
+    }
+    
+    return {
+      statusCode: 500,
+      body: { message: 'Internal server error' }
+    };
   }
 }
 ```
 
-### 2. Metadata
 
-Metadata defines the domain models, types, and interfaces:
-- Data structures
-- Type definitions
-- Validation schemas
-- Domain entities
+**Key Points of Primary Adapter Pattern:**
+- Handles all Protocol specific logic
+- Integrates with SaaS Identity for auth
+- Enriches the request with metadata before passing it to the usecase
+- Handles response formatting and errors
+- Keeps infrastructure concerns separate from business logic
+ 
+
+#### Secondary Adapter
+
+Secondary adapters handle external integrations like AI services, databases, and third-party APIs. Here's an example of a secondary adapter for OpenAI:
 
 ```typescript
-// Example metadata for value strategist
-export interface ValueStrategyInput {
-  deliverableName: string;
-  applicationIdea: string;
-  idealCustomer: string;
-  problem: string;
-  solution: string;
-}
+/**
+ * Example of a secondary adapter for OpenAI integration
+ * Demonstrates the secondary adapter pattern by:
+ * 1. Initializing external client
+ * 2. Handling external service configuration
+ * 3. Managing service interactions
+ * 4. Error handling and retries
+ * 5. Response transformation
+ */
+export const createValueStrategy = async (input: RequestValueStrategyInput): Promise<Deliverable> => {
+  try {
+    // Initialize external service client
+    const assistant = await client.beta.assistants.create({
+      name: "Value Strategist",
+      instructions: systemPrompt,
+      model: "gpt-4",
+      response_format: responseFormat,
+      tools: [/* tool configurations */]
+    });
 
-export interface ValueStrategyResult {
-  id: string;
-  input: ValueStrategyInput;
-  output: {
-    valueProposition: string;
-    benefitBreakdown: string[];
-    marketAnalysis: string;
-    recommendations: string[];
-  };
-  createdAt: Date;
-}
+    // Create session/context
+    const thread = await client.beta.threads.create();
 
+    // Transform and send input
+    await client.beta.threads.messages.create(thread.id, {
+      role: "user",
+      content: `Please create a value proposition for:
+        Application Idea: ${input.applicationIdea}
+        Ideal Customer: ${input.idealCustomer}
+        Problem: ${input.problem}
+        Solution: ${input.solution}`
+    });
+
+    // Execute external service call
+    const run = await client.beta.threads.runs.create(thread.id, {
+      assistant_id: assistant.id
+    });
+
+    // Handle async completion and status checks
+    const completedRun = await waitForRunCompletion(client, thread.id, run.id);
+    
+    // Transform and validate response
+    const messages = await client.beta.threads.messages.list(thread.id);
+    const content = parseAndValidateResponse(messages);
+    
+    // Cleanup resources
+    await cleanup(assistant.id, thread.id);
+
+    return content;
+  } catch (error) {
+    console.error('Error in external service:', error);
+    throw error;
+  }
+};
+
+// Add retry wrapper for resilience
+export const runValueStrategy = withRetry(createValueStrategy, {
+  retries: 3,
+  delay: 1000,
+  onRetry: (error) => console.warn('Retrying due to error:', error)
+});
+```
+
+**Key Points of Secondary Adapter Pattern:**
+- Encapsulates external service integration details
+- Handles service-specific configuration
+- Manages connection lifecycle
+- Implements retry and error handling
+- Transforms data between domain and external formats
+
+### 2. Metadata
+
+Metadata is used to glue the adapters and usecases together. It defines the domain models, types, and interfaces:
+
+```typescript
+// System prompts/instructions
+export const systemPrompt = () => `
+  You are an expert value strategist. Your order is to create 
+  a detailed one-page value proposition based on the provided 
+  application idea, target customer, problem, and proposed solution.
+`;
+
+// Domain schemas and types
 export const ValueStrategySchema = z.object({
-  deliverableName: z.string().min(3),
-  applicationIdea: z.string().min(10),
+  deliverableName: z.string(),
+  sections: z.object({
+    applicationIdea: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('text'),
+      description: z.string().optional(),
+      data: z.string()
+    }),
+    valueProposition: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('text'),
+      description: z.string().optional(),
+      data: z.string()
+    }),
+    benefitBreakdown: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('list'),
+      description: z.string().optional(),
+      data: z.array(z.string())
+    })
+    // ... other sections
+  })
+});
+
+// Base schemas for requests/responses
+export const BasePayloadSchema = z.object({
+  userId: z.string(),
+  orderId: z.string(),
+  deliverableId: z.string(),
+  deliverableName: z.string(),
+  agentId: z.string()
+});
+
+// Input/Output schemas
+export const RequestValueStrategyInputSchema = BasePayloadSchema.extend({
+  applicationIdea: z.string(),
   idealCustomer: z.string(),
   problem: z.string(),
   solution: z.string()
 });
+
+export const DeliverableSchema = z.object({
+  deliverableContent: ValueStrategySchema
+});
+
+// Type exports
+export type RequestValueStrategyInput = z.infer<typeof RequestValueStrategyInputSchema>;
+export type Deliverable = z.infer<typeof DeliverableSchema>;
 ```
+
+**Key Points of Metadata Pattern:**
+- Defines system prompts and instructions
+- Specifies data schemas and validation rules
+- Declares domain types and interfaces
+- Establishes contract between adapters and usecases
+- Provides type safety and runtime validation
 
 ### 3. Usecases
 
-Usecases implement the business logic and orchestrate the flow:
-- Business rules
-- Domain logic
-- Flow coordination
-- Error handling
+Usecases implement the business logic and orchestrate the flow between adapters. They handle:
+- Business rules and domain logic
+- Flow coordination between adapters
+- Error handling and logging
+- Data transformation and validation
+
+Here's an example usecase that generates a value strategy:
 
 ```typescript
-// Example usecase for value strategist
-export class GenerateValueStrategyUseCase {
-  constructor(
-    private readonly adapter: ValueStrategistAdapter,
-    private readonly validator: ValidationService
-  ) {}
+export const createValueStrategyUsecase = async (input: RequestValueStrategyInput): Promise<Message> => {
+  console.log("--- Create Value Strategy Usecase ---");
+  try {
+    // Generate strategy content using OpenAI adapter
+    const deliverableContent = await runValueStrategy(input);
 
-  async execute(input: ValueStrategyInput): Promise<ValueStrategyResult> {
-    // Validate input
-    this.validator.validate(ValueStrategySchema, input);
-
-    // Generate strategy
-    const strategyContent = await this.adapter.generateStrategy(input);
-
-    // Process and format result
-    const result: ValueStrategyResult = {
-      id: generateUUID(),
-      input,
-      output: this.processStrategyContent(strategyContent),
-      createdAt: new Date()
+    // Transform result into deliverable format
+    const deliverable: DeliverableDTO = {
+      userId: input.userId,
+      orderId: input.orderId,
+      deliverableId: input.deliverableId,
+      deliverableName: input.deliverableName,
+      agentId: input.agentId,
+      ...deliverableContent
     };
 
-    // Store result
-    await this.adapter.storeResult(result);
+    // Store result using repository adapter
+    await deliverableRepository.saveDeliverable(deliverable);
 
-    return result;
-  }
+    // Return success message
+    return {
+      message: "Value strategy created successfully"
+    };
 
-  private processStrategyContent(content: string): ValueStrategyOutput {
-    // Process and structure the generated content
-    // ...
+  } catch (error) {
+    console.error('Error generating value strategy:', error);
+    throw new Error('Failed to generate value strategy');
   }
-}
+};
 ```
+
+**Key Points of Usecase Pattern:**
+- Pure business logic with no infrastructure concerns
+- Coordinates between multiple adapters (e.g., OpenAI and database)
+- Handles error cases and logging
+- Transforms data between adapter formats
+- Returns standardized response types
 
 ## Pattern Benefits
 
@@ -147,41 +344,6 @@ export class GenerateValueStrategyUseCase {
    - Easy to mock external dependencies
    - Clear component boundaries
 
-## Implementation Example
-
-Here's how the pattern is used in the Value Strategist agent:
-
-```typescript
-// Directory structure
-value-strategist/
-├── adapters/
-│   ├── openai.adapter.ts
-│   ├── storage.adapter.ts
-│   └── api.adapter.ts
-├── metadata/
-│   ├── types.ts
-│   ├── schemas.ts
-│   └── entities.ts
-└── usecases/
-    ├── generate-strategy.usecase.ts
-    └── update-strategy.usecase.ts
-
-// Usage example
-export class ValueStrategistController {
-  constructor(
-    private readonly generateStrategyUseCase: GenerateValueStrategyUseCase
-  ) {}
-
-  async handleStrategyRequest(req: Request): Promise<Response> {
-    try {
-      const result = await this.generateStrategyUseCase.execute(req.body);
-      return new Response(result, 200);
-    } catch (error) {
-      return this.handleError(error);
-    }
-  }
-}
-```
 
 ## Best Practices
 
@@ -204,28 +366,3 @@ export class ValueStrategistController {
    - Unit test usecases in isolation
    - Mock adapters in tests
    - Integration test full flows
-
-## Common Use Cases
-
-The AMU pattern is used throughout Agentic Team OS:
-
-1. **Agent Plane**
-   - AI agent interactions
-   - Model integrations
-   - Result processing
-
-2. **Control Plane**
-   - User management
-   - Billing operations
-   - System configuration
-
-3. **Orchestrator**
-   - Request routing
-   - Message handling
-   - State management
-
-## Next Steps
-
-- [Architecture Overview](/concepts/architecture)
-- [Adding Agents](/guides/adding-agents)
-- [API Template](/templates/api-template) 
