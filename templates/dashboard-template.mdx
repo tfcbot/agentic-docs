@@ -1,54 +1,290 @@
 ---
 title: 'Dashboard Template'
-description: 'Understanding the Dashboard template structure and concepts'
+description: 'Template for building a dashboard'
 ---
 
-# Dashboard Template
-
-The Dashboard template is a Next.js application built with SST for infrastructure management. It provides a modern, responsive admin interface for your Agentic application.
+The Dashboard template provides a modern, responsive admin interface built with Next.js and SST. It follows a component-based architecture designed for extensibility and maintainability.
 
 ## Project Structure
 
 ```bash
-    agentic-dashboard-template/
-├── src/             # Application source code
-├── tests/           # Test files
-├── .sst/            # SST build artifacts
-├── sst.config.ts    # SST configuration
-├── next.config.js   # Next.js configuration
-└── .env.*           # Environment configurations
+agentic-dashboard-template/
+|-- src/                # Application source code
+|   |-- app/            # Next.js app router pages
+|   |-- components/    # Reusable UI components
+|   |-- context/       # React context providers
+|   |-- hooks/         # Custom React hooks
+|   |-- schemas/       # Type definitions and schemas
+|-- tests/             # Test files
+|-- .sst/             # SST build artifacts
+|-- sst.config.ts     # SST configuration
+|-- .env.*            # Environment configurations
 ```
 
-### `src/`
+Let's explore the key components of the dashboard template:
 
-### `tests/`
+1. **Application Structure (`/src`)**
 
-### `sst.config.ts`
+The source code follows Next.js 14+ app router conventions:
 
-### `next.config.js`
+```bash
+/src/app/
+|
+|-- (auth)/                    # Authentication group
+|   |-- sign-in/               # Sign in pages
+|   |   `-- [[...sign-in]]/    # Catch-all sign-in route
+|   |       `-- page.tsx
+|   |
+|   `-- sign-up/               # Sign up pages
+|       `-- [[...sign-up]]/    # Catch-all sign-up route
+|           `-- page.tsx
+|
+|-- (authenticated)/           # Protected routes group
+|   |-- agent/                 # Agent-related pages
+|   |   `-- [id]/              # Dynamic agent routes
+|   |       |-- intake/        # Order intake flow
+|   |       |   |-- layout.tsx
+|   |       |   `-- page.tsx
+|   |       |-- layout.tsx
+|   |       `-- page.tsx
+|   |
+|   |-- orders/                # Order management
+|   |   |-- [id]/              # Individual order view
+|   |   |   `-- page.tsx
+|   |   `-- page.tsx           # Orders list
+|   |
+|   |-- settings/              # Settings section
+|   |   `-- page.tsx 
+|   |
+|   |-- layout.tsx             # Authenticated layout (with sidebar)
+|   `-- page.tsx               # Dashboard home
+|
+|-- waitlist/                  # Waitlist page
+|   `-- page.tsx
+|
+|-- globals.css                # Global styles
+|-- layout.tsx                 # Root layout
+|-- providers.tsx              # App providers wrapper
+```
 
-### `.env.*`
+2. **Key Components**
 
-## Key Libraries
-- Next.js 
-- Tailwind CSS
-- Clerk Authentication
-- Stripe Billing
+The dashboard includes several pre-built components:
+
+```bash
+/src/app/components
+|-- ui/                # Base UI components
+|   |-- button.tsx
+|   |-- input.tsx
+|   |-- searchInput.tsx
+|-- AgentCard.tsx      # Agent display card
+|-- AgentOrderForm.tsx # Order creation form
+|-- AgentServiceView.tsx # Agent service details
+|-- DashboardHeader.tsx # Page header component
+|-- Deliverable.tsx    # Order deliverable view
+|-- Sidebar.tsx        # Navigation sidebar
+```
+
+3. **Authentication & Authorization**
+
+The template uses Clerk for authentication:
+
+- Protected routes under `/(authenticated)`
+- Sign-in/sign-up flows under `/(auth)`
+- Middleware-based route protection
+
+4. **State Management**
+
+The application uses a combination of:
+
+- React Context for global UI state
+- React Query for server state management
+- Custom hooks for shared business logic
 
 ## Environment Configuration
 
-### Sandbox
-
 ### Development
 
-### Production
+Create a `.env.development` file:
+
+```bash
+# sst Secrets
+baseDomain=<base_domain>
+clerkSecretKey=<clerk_secret_key>
+clerkSignInUrl=<sign_in_url>
+clerkSignUpUrl=<sign_up_url>
+clerkPublishableKey=<clerk_pub_key>
+subscriptionManagementUrl=<subscription_management_url>
+stripePublishableKey=<stripe_pub_key>
+
+# NextJS
+NEXT_API_URL=<api_url>
+NEXT_PUBLIC_CLERK_WAITLIST_URL=<waitlist_url>
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=<after_sign_in_url>
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=<after_sign_up_url>
+
+# Cloudflare
+CLOUDFLARE_API_TOKEN=<cloudflare_api_token>
+```
 
 
 ## Running Tests Locally
 
+1. Create a `.env.test` file with test credentials
 
+```bash
+TEST_AUTH_TOKEN=<test_auth_token>
+NEXT_API_URL=<api_url>
+```
+
+2. Run the test suite:
+
+```bash
+yarn test
+```
 
 ## Deployment
+
+The dashboard template supports multiple deployment options:
+
+
+## SST Configuration
+
+The dashboard template uses SST for deployment and infrastructure management. The configuration is defined in `sst.config.ts` and consists of several key aspects:
+
+### 1. App Configuration
+
+The base app configuration defines core settings for the SST application:
+
+```typescript
+export default $config({
+  app(input) {
+    return {
+      name: "agentic-dashboard",
+      removal: input?.stage === "production" ? "retain" : "remove",
+      protect: ["production"].includes(input?.stage),
+      home: "aws",
+      providers: {
+        cloudflare: {
+          version: "5.45.0",
+          apiToken: process.env.CLOUDFLARE_API_TOKEN,
+        }
+      }
+    };
+  }
+});
+```
+
+- `name`: Defines the app name used to prefix resources
+- `removal`: Retains resources in production, removes them in other stages
+- `protect`: Adds additional protection for production resources
+- `home`: Uses AWS as the primary provider
+- `providers`: Configures Cloudflare for DNS management
+
+### 2. Secrets and Domain Configuration
+
+The configuration manages secrets and environment-specific domains:
+
+```typescript
+async run() {
+  // Clerk authentication secrets
+  const clerkSignInUrl = new sst.Secret("clerkSignInUrl");
+  const clerkSignUpUrl = new sst.Secret("clerkSignUpUrl");
+  const clerkPublishableKey = new sst.Secret("clerkPublishableKey");
+  const clerkSecretKey = new sst.Secret("clerkSecretKey");
+  
+  // Payment and subscription secrets
+  const stripePublishableKey = new sst.Secret("stripePublishableKey");
+  const subscriptionManagementUrl = new sst.Secret("subscriptionManagementUrl");
+  
+  // Domain configuration
+  const domainName = $app.stage === "production"
+    ? `app.${baseDomain}`
+    : `${$app.stage}-app.${baseDomain}`;
+   
+  const apiDomainName = $app.stage === "production"
+    ? `api.${baseDomain}`
+    : `${$app.stage}-api.${baseDomain}`;
+
+  const web = new sst.aws.Nextjs("MyWeb", {
+    domain: {
+      name: domainName,
+      dns: sst.cloudflare.dns({
+        transform: {
+          record: (record) => {
+            if (record.name === domainName && record.type !== "CAA") {
+              record.proxied = true;
+              record.ttl = 1;
+            }
+          },
+        },
+      }),
+    },
+    environment: {
+      // Environment variables for authentication and API
+      NEXT_PUBLIC_CLERK_SIGN_IN_URL: clerkSignInUrl.value,
+      NEXT_PUBLIC_CLERK_SIGN_UP_URL: clerkSignUpUrl.value,
+      NEXT_CLERK_PUBLISHABLE_KEY: clerkPublishableKey.value,
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: stripePublishableKey.value,
+      CLERK_SECRET_KEY: clerkSecretKey.value,
+      NEXT_API_URL: `https://${apiDomainName}/v1`,
+      NEXT_SUBSCRIPTION_MANAGEMENT_URL: subscriptionManagementUrl.value,
+    },
+  });
+}
+```
+
+- Manages authentication secrets for Clerk
+- Handles payment and subscription configuration
+- Automatically generates stage-specific subdomains
+- Configures Cloudflare DNS with proper proxying
+- Sets up environment variables for authentication and API endpoints
+
+### 3. Auto-deployment Configuration
+
+The autodeploy configuration manages deployment rules for different branches:
+
+```typescript
+console: {
+  autodeploy: {
+    target(event) {
+      if (event.type === "branch" && event.action === "pushed") {
+        switch (event.branch) {
+          case "development":
+            return {
+              stage: "dev",
+              runner: { engine: "codebuild", compute: "large" }
+            };
+          case "staging":
+            return {
+              stage: "staging",
+              runner: { engine: "codebuild", compute: "large" }
+            };
+          case "main":
+            return {
+              stage: "production",
+              runner: { engine: "codebuild", compute: "large" }
+            };
+          default:
+            return {
+              stage: event.branch
+            }
+        }
+      }
+    }
+  }
+}
+```
+
+Defines automatic deployment rules:
+- `development` branch → dev stage
+- `staging` branch → staging stage
+- `main` branch → production stage
+- Other branches → stage named after branch
+
+Each deployment uses CodeBuild with large compute resources for optimal build performance.
+
+For more details on SST configuration options, refer to the [SST Config Documentation](https://sst.dev/docs/reference/config/).
 
 
 
