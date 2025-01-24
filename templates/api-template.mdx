@@ -1,146 +1,255 @@
 ---
 title: 'API Template'
-description: 'Understanding the API template structure and concepts'
+description: 'Template for building a serverless API service'
 ---
 
-The API template provides a serverless API service built with SST. It follows a modular structure designed for scalability and maintainability.
+The API template provides a serverless API service built with SST. It follows a clean architecture pattern designed for scalability and maintainability.
 
 ## Project Structure
 
 ```bash
 agentic-api-template/
-├── packages/          # Core packages directory
-├── infra/             # Infrastructure definitions
-├── sst.config.ts      # SST configuration
-└── .env.*             # Environment configurations
+|-- packages/                        # Core packages directory
+|   |-- core/                        # Core business logic
+|   |   |-- src/
+|   |   |   |-- agent-plane/         # Agent-related functionality
+|   |   |   |-- control-plane/       # User, Billing, Settings
+|   |   |   `-- orchestrator/        # Orchestration logic
+|   |   `-- package.json
+|   |
+|   |-- functions/                   # Lambda function handlers
+|   |   |-- src/
+|   |   |   |-- agent-plane.api.ts   # Agent handlers
+|   |   |   |-- control-plane.api.ts # User/billing handlers
+|   |   |   `-- orchestrator.api.ts  # API Gateway entry points
+|   |   `-- package.json
+|   |
+|   `-- utils/                       # Shared utilities
+|       |-- src/
+|       |   |-- metadata/            # Schema definitions
+|       |   |-- @tools/               # Core utilities
+|       |   `-- vendors/             # Third-party integrations
+|       `-- package.json
+|
+|-- infra/                           # Infrastructure definitions
+|   |-- api.ts                       # API Gateway configuration
+|   |-- database.ts                  # DynamoDB tables
+|   |-- queues.ts                    # SQS queues
+|   |-- topics.ts                    # SNS topics
+|
+|-- sst.config.ts                    # SST configuration
+|-- .env.*                           # Environment configurations
 ```
 
-I'll explain the key components of the agentic-api-template project:
+Let's explore the key components of the API template:
 
-1. **Project Structure**
-The template follows a modular architecture with these main directories:
-- `/packages` - Core application code
-- `/infra` - Infrastructure definitions using SST
-- `sst.config.ts` - SST configuration
-- `.env.*` - Environment configurations
+1. **Core Package (`/packages/core`)**
 
-2. **Infrastructure (`/infra`)**
+The core package follows a clean architecture pattern with three main modules:
 
-Each file in the infra represents a single resource type.
+```bash
+/core/src/
+|-- agent-plane/           # Agent-specific logic
+|   |-- adapters/         # Interface adapters
+|   |-- entities/         # Business entities
+|   `-- usecases/        # Business logic
+|
+|-- control-plane/        # User and billing
+|   |-- adapters/
+|   |   |-- primary/     # Input ports
+|   |   `-- secondary/   # Output ports
+|   |-- entities/
+|   `-- usecases/
+|
+`-- orchestrator/         # Request orchestration
+    |-- adapters/
+    |-- entities/
+    `-- usecases/
+```
+
+2. **Functions Package (`/packages/functions`)**
+
+Lambda functions that handle API requests:
+
+```bash
+/functions/src/
+|-- agent-plane.api.ts    # Agent-related endpoints
+|-- control-plane.api.ts  # User/billing endpoints
+|-- orchestrator.api.ts   # API Gateway handlers
+```
+
+3. **Utils Package (`/packages/utils`)**
+
+Shared utilities and tools:
+
+```bash
+/utils/src/
+|-- metadata/            # Schema definitions
+|   |-- agent.cost.ts
+|   |-- apikey.schema.ts
+|   |-- credit.schema.ts
+|
+|-- @tools/              # Core utilities
+|   |-- ai-middleware.ts
+|   |-- api-key-manager.ts
+|   |-- credit-manager.ts
+|   |-- custom-error.ts
+|   |-- custom-handler.ts
+|   |-- http-status.ts
+|   |-- retry.ts
+|   |-- saas-identity.ts
+|-- vendors/            # Third-party integrations
+|   |-- api-key-vendor.ts
+|   |-- jwt-vendor.ts
+```
+
+## Environment Configuration
+
+### Development
+
+Create a `.env.sandbox` file:
+
+```bash
+# Authentication
+CLERK_SECRET_KEY=<clerk_secret_key>
+UNKEY_API_KEY=<unkey_api_key>
+UNKEY_ROOT_KEY=<unkey_root_key>
+
+# Infrastructure
+AWS_ACCESS_KEY_ID=<aws_access_key>
+AWS_SECRET_ACCESS_KEY=<aws_secret_key>
+AWS_REGION=us-east-1
+
+# Payments
+STRIPE_SECRET_KEY=<stripe_secret_key>
+STRIPE_WEBHOOK_SECRET=<stripe_webhook_secret>
+
+# AI Services
+OPENAI_API_KEY=<openai_api_key>
+
+# Domain Configuration
+DOMAIN_NAME=<domain_name>
+CLOUDFLARE_API_TOKEN=<cloudflare_token>
+```
+
+## SST Configuration
+
+The API template uses SST for deployment and infrastructure management. The configuration is defined in `sst.config.ts`:
+
+### 1. App Configuration
 
 ```typescript
-// Key infrastructure components:
-
-// api.ts - Defines API Gateway endpoints and routes
-export const api = new sst.aws.ApiGatewayV2('BackendApi', {
-  domain: {...},
-  cors: {...}
+export default $config({
+  app(input) {
+    return {
+      name: "agentic-api-template",
+      removal: input?.stage === "prod" ? "retain" : "remove",
+      home: "aws",
+      providers: { 
+        aws: {
+          region: "us-east-1",
+        }, 
+        "aws-native": {
+          region: "us-east-1",
+        }, 
+        cloudflare: {
+          version: "5.42.0",
+          apiToken: process.env.CLOUDFLARE_API_TOKEN,
+        }
+      },
+    };
+  }
 });
-
-// database.ts - DynamoDB table definitions
-export const usersTable = new aws.dynamodb.Table("Users", {...});
-export const ordersTable = new aws.dynamodb.Table("Orders", {...});
-
-// queues.ts - SQS queue definitions
-export const valueStrategyQueue = new sst.aws.Queue("ValueStrategyQueue", {...});
-
-// topics.ts - SNS topic definitions
-export const orderTopic = new sst.aws.SnsTopic("OrderTopic", {...});
 ```
 
-3. **Core Package Structure (`/packages/core`)**
-The core package follows a clean architecture pattern:
+- `name`: Defines the app name used to prefix resources
+- `removal`: Retains resources in production, removes them in other stages
+- `home`: Uses AWS as the primary provider
+- `providers`: Configures AWS and Cloudflare settings
 
-```
-/core
-  /agent-plane           # Agent-related functionality
-  /control-plane         # User, Billing and Settings related functionality
-  /orchestrator          # Orchestration logic  
-```
-Each of these modules are further divided into smaller modules that follow the [AMU pattern](/concepts/amu-pattern). 
+### 2. Infrastructure Configuration
 
-4. **Functions (`/packages/functions`)**
-Here is where you define lambda functions that are used to handle API requests.
-These functions import from the core package and are organized into three main API files that mirror the core package structure:
-
-```
-/functions
-├── src/
-│   ├── agent-plane.api.ts     # Agent-related lambda handlers
-│   ├── control-plane.api.ts   # User/billing lambda handlers
-│   ├── orchestrator.api.ts    # API Gateway entry points
-├── package.json               # Dependencies including core package
-├── tsconfig.json             # TypeScript configuration
-└── sst-env.d.ts             # SST generated types
-```
-
-Each API file serves a specific purpose:
-
-- **agent-plane.api.ts**: Contains handlers for agent-specific queues and streams (website review, strategy creation, etc.)
-- **control-plane.api.ts**: Manages user-related functions like authentication, billing, and onboarding
-- **orchestrator.api.ts**: Handles incoming API Gateway requests and routes them to appropriate services
-
-## Utilities (`@utils`)
-
-The utilities package (`@utils`) provides shared functionality and tools used across the application. It's organized into the following key areas:
-
-### Metadata
-Contains schema definitions and types using Zod:
-- `agent.cost.ts` - Defines AI model costs and token pricing
-- `apikey.schema.ts` - API key validation and management schemas
-- `credit.schema.ts` - Credit management schemas
-- `jwt.schema.ts` - JWT token validation schemas
-- `message.schema.ts` - Standard message response schemas
-- `saas-identity.schema.ts` - User identity and validation schemas
-- `tools.schema.ts` - Tool-specific interfaces and schemas
-
-### Tools
-Core utility functions and classes:
-- `ai-middleware.ts` - AI model token cost calculations
-- `api-key-manager.ts` - API key management functionality
-- `credit-manager.ts` - Credit tracking and validation
-- `custom-error.ts` - Error handling and HTTP responses
-- `custom-handler.ts` - Lambda handler wrappers
-- `http-status.ts` - HTTP status codes and response formatting
-- `retry.ts` - Retry logic for API calls
-- `saas-identity.ts` - User identity verification
-
-### Vendors
-Integration with third-party services:
-- `api-key-vendor.ts` - API key service integration (Unkey)
-- `jwt-vendor.ts` - JWT service integration (Clerk)
-
-The utils package is designed to be imported using the `@utils` alias, which is configured in the project's TypeScript configuration:
+The infrastructure is modularly defined in the `/infra` directory and imported into the SST config:
 
 ```typescript
-import { creditManagerTool } from '@utils/tools/credit-manager';
-import { AIModel } from '@utils/metadata/agent.cost';
-import { HttpResponses } from '@utils/tools/http-status';
+async run() {
+  const infra = await import("./infra");
+  return {
+    api: infra.api.url,
+  };
+}
 ```
 
+### 3. Auto-deployment Configuration
+
+The autodeploy configuration manages deployment rules for different branches:
+
+```typescript
+console: {
+  autodeploy: {    
+    target(event) {      
+      if (event.type === "branch" && event.branch != "main" && event.action === "pushed") {        
+        return {          
+          stage: event.branch,          
+          runner: { 
+            engine: "codebuild", 
+            compute: "large",
+            architecture: "arm64" 
+          }        
+        };      
+      }   
+      if (event.type === "branch" && event.branch === "main" && event.action === "pushed") {
+        return {
+          stage: "prod",
+          runner: {
+            engine: "codebuild",
+            compute: "large",
+            architecture: "arm64"
+          }
+        };
+      }
+    }  
+  }
+}
+```
+
+Defines automatic deployment rules:
+- `main` branch → prod stage
+- Other branches → stage named after branch
+
+Each deployment uses CodeBuild with:
+- Large compute resources
+- ARM64 architecture for better performance
+- Automatic stage naming based on branch
 
 ## Running Tests Locally
 
-Create a `env.test` file in the root of the project and add the following variables:
-```
-ACCESS_TOKEN=<test_access_token>
+1. Create a `.env.test` file with test credentials:
+
+```bash
+TEST_AUTH_TOKEN=<test_auth_token>
 OPENAI_API_KEY=<test_openai_api_key>
 API_URL=https://sandbox-api.yourdomain.com/v1/
 ```
 
-You can generate a test access token from [Clerk](/integrations/clerk)
+2. Run the test suite:
 
+```bash
+yarn test
+```
 
 ## Deployment
 
-You should have auto-deployment enabled in [SST](/integrations/sst) 
+The API template supports multiple deployment options:
 
-Deployments to development and production are handled automatically.
+### SST Deployment
 
-To deploy to sandbox, you can run:
 ```bash
+# Deploy to sandbox
 sst deploy --stage sandbox
 ```
 
-or perform a git push to the `sandbox` branch.
+Deployment to production is handled by SST Autodeploy when merging to the main branch.
+
+For more details on SST configuration options, refer to the [SST Config Documentation](https://sst.dev/docs/reference/config/).
 
