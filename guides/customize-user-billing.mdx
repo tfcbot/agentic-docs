@@ -1,0 +1,216 @@
+---
+title: 'Customize User Billing'
+description: 'Implement user billing with Stripe'
+---
+
+This guide walks you through setting up user billing in your Agentic Team OS using Stripe.
+
+## Overview
+
+Agentic Team OS uses Stripe for payment processing and subscription management. The billing system includes:
+- Credit purchases
+- Subscription management
+- Usage tracking
+
+## Stripe Setup
+
+1. **Create Stripe Account**
+   - Sign up at [stripe.com](https://stripe.com)
+   - Get your API keys:
+     - `STRIPE_SECRET_KEY`
+     - `STRIPE_PUBLISHABLE_KEY`
+     - `STRIPE_WEBHOOK_SECRET`
+
+2. **Configure Environment Variables**
+   ```bash
+   # .env file
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+   STRIPE_SECRET_KEY=sk_test_...
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   ```
+
+## Credit System
+
+1. **Configure Credit Prices**
+   ```typescript
+   // packages/core/src/control-plane/entities/credits.ts
+   export const creditPrices = {
+     tier1: {
+       credits: 100,
+       price: 1000, // $10.00
+       stripeId: 'price_...'
+     },
+     tier2: {
+       credits: 500,
+       price: 4000, // $40.00
+       stripeId: 'price_...'
+     }
+   };
+   ```
+
+2. **Implement Credit Purchase**
+   ```typescript
+   // packages/functions/src/control-plane/credits.ts
+   export const purchaseCredits = async (userId: string, priceId: string) => {
+     const session = await stripe.checkout.sessions.create({
+       customer: userId,
+       payment_method_types: ['card'],
+       line_items: [{ price: priceId, quantity: 1 }],
+       mode: 'payment',
+       success_url: '${YOUR_DOMAIN}/dashboard?success=true',
+       cancel_url: '${YOUR_DOMAIN}/dashboard?canceled=true',
+     });
+     
+     return session;
+   };
+   ```
+
+## Credit Management
+
+1. **Track Credits**
+   ```typescript
+   // packages/core/src/control-plane/usecases/update-credits.ts
+   export class UpdateCreditsUseCase {
+     async execute(userId: string, amount: number) {
+       const user = await this.userRepo.findById(userId);
+       user.credits += amount;
+       await this.userRepo.save(user);
+       return user.credits;
+     }
+   }
+   ```
+
+2. **Check Credit Balance**
+   ```typescript
+   // packages/core/src/control-plane/usecases/get-credits.ts
+   export class GetCreditsUseCase {
+     async execute(userId: string) {
+       const user = await this.userRepo.findById(userId);
+       return user.credits;
+     }
+   }
+   ```
+
+## Frontend Integration
+
+1. **Add Purchase Button**
+   ```typescript
+   import { loadStripe } from '@stripe/stripe-js';
+   import { usePurchaseCredits } from '@/hooks/useBilling';
+   
+   export function UpgradeButton() {
+     const { getSessionId } = usePurchaseCredits();
+     
+     const handleUpgrade = async () => {
+       const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+       const sessionId = await getSessionId();
+       await stripe.redirectToCheckout({ sessionId });
+     };
+     
+     return (
+       <button onClick={handleUpgrade}>
+         Purchase Credits
+       </button>
+     );
+   }
+   ```
+
+2. **Display Credit Balance**
+   ```typescript
+   import { useUserCreditsRemaining } from '@/hooks/useBilling';
+   
+   export function CreditBalance() {
+     const { data: credits } = useUserCreditsRemaining();
+     
+     return (
+       <div>
+         Credits Remaining: {credits}
+       </div>
+     );
+   }
+   ```
+
+## Subscription Management
+
+1. **Configure Subscription Products**
+   ```typescript
+   // packages/core/src/control-plane/entities/subscriptions.ts
+   export const subscriptionPlans = {
+     basic: {
+       credits: 1000,
+       price: 9900, // $99.00/month
+       stripeId: 'price_...'
+     },
+     pro: {
+       credits: 5000,
+       price: 29900, // $299.00/month
+       stripeId: 'price_...'
+     }
+   };
+   ```
+
+2. **Handle Subscription Updates**
+   ```typescript
+   // packages/functions/src/webhooks/stripe.ts
+   async function handleSubscriptionUpdated(subscription) {
+     const userId = subscription.customer;
+     const plan = subscriptionPlans[subscription.plan.id];
+     
+     await updateUserCredits(userId, plan.credits);
+   }
+   ```
+
+## Usage Tracking
+
+1. **Track Credit Usage**
+   ```typescript
+   // packages/core/src/control-plane/usecases/deduct-credits.ts
+   export class DeductCreditsUseCase {
+     async execute(userId: string, amount: number) {
+       const user = await this.userRepo.findById(userId);
+       if (user.credits < amount) {
+         throw new Error('Insufficient credits');
+       }
+       user.credits -= amount;
+       await this.userRepo.save(user);
+       return user.credits;
+     }
+   }
+   ```
+
+2. **Usage Analytics**
+   ```typescript
+   // packages/core/src/control-plane/usecases/get-usage.ts
+   export class GetUsageUseCase {
+     async execute(userId: string, period: string) {
+       const usage = await this.usageRepo.findByUserAndPeriod(
+         userId,
+         period
+       );
+       return usage;
+     }
+   }
+   ```
+
+## Best Practices
+
+1. **Error Handling**
+   - Handle failed payments gracefully
+   - Implement retry logic for webhooks
+   - Add proper error messages
+
+2. **Security**
+   - Validate webhook signatures
+   - Use test mode for development
+   - Implement proper logging
+
+3. **User Experience**
+   - Show clear pricing information
+   - Add loading states
+   - Display transaction history
+
+## Next Steps
+
+- [Coding with AI](/guides/coding-with-ai)
+- [Adding Agents](/guides/adding-agents)
+- [Setup Webhooks](/guides/setup-webhooks) 

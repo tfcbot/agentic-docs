@@ -1,0 +1,269 @@
+---
+title: 'Customize Onboarding'
+description: 'Create a personalized onboarding experience for your users'
+---
+
+This guide walks you through customizing the user onboarding experience in your Agentic Team OS application.
+
+## Overview
+
+A well-designed onboarding flow helps users get started quickly and understand your application's value. Key aspects include:
+- Welcome experience
+- Initial setup wizard
+- Feature tours
+- Email sequences
+
+## Welcome Experience
+
+1. **Customize Welcome Page**
+   ```typescript
+   // app/(authenticated)/welcome/page.tsx
+   export default function WelcomePage() {
+     return (
+       <div className="max-w-4xl mx-auto py-12">
+         <h1 className="text-4xl font-bold">Welcome to Your App</h1>
+         <p className="mt-4 text-lg text-gray-600">
+           Let's get you set up and ready to go
+         </p>
+         
+         <div className="mt-8">
+           <SetupWizard />
+         </div>
+       </div>
+     );
+   }
+   ```
+
+2. **Setup Progress Tracking**
+   ```typescript
+   // hooks/useOnboarding.ts
+   export function useOnboarding() {
+     const steps = [
+       { id: 'profile', title: 'Complete Profile' },
+       { id: 'team', title: 'Team Setup' },
+       { id: 'integration', title: 'Connect Services' },
+       { id: 'first-agent', title: 'Create First Agent' }
+     ];
+     
+     const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+     
+     const markStepComplete = async (stepId: string) => {
+       await updateUserOnboarding(stepId);
+       setCompletedSteps(prev => [...prev, stepId]);
+     };
+     
+     return {
+       steps,
+       completedSteps,
+       markStepComplete,
+       progress: (completedSteps.length / steps.length) * 100
+     };
+   }
+   ```
+
+## Setup Wizard
+
+1. **Create Wizard Component**
+   ```typescript
+   // components/SetupWizard.tsx
+   import { useState } from 'react';
+   import { useOnboarding } from '@/hooks/useOnboarding';
+   
+   export function SetupWizard() {
+     const [currentStep, setCurrentStep] = useState(0);
+     const { steps, markStepComplete } = useOnboarding();
+     
+     const handleNext = async () => {
+       await markStepComplete(steps[currentStep].id);
+       setCurrentStep(prev => prev + 1);
+     };
+     
+     return (
+       <div className="space-y-8">
+         <ProgressBar />
+         
+         {currentStep === 0 && <ProfileSetup onComplete={handleNext} />}
+         {currentStep === 1 && <TeamSetup onComplete={handleNext} />}
+         {currentStep === 2 && <IntegrationSetup onComplete={handleNext} />}
+         {currentStep === 3 && <FirstAgentSetup onComplete={handleNext} />}
+       </div>
+     );
+   }
+   ```
+
+2. **Individual Setup Steps**
+   ```typescript
+   // components/onboarding/ProfileSetup.tsx
+   export function ProfileSetup({ onComplete }) {
+     const { user } = useUser();
+     const [formData, setFormData] = useState({
+       name: user.firstName || '',
+       company: '',
+       role: ''
+     });
+     
+     const handleSubmit = async (e) => {
+       e.preventDefault();
+       await updateUserProfile(formData);
+       onComplete();
+     };
+     
+     return (
+       <form onSubmit={handleSubmit}>
+         {/* Form fields */}
+       </form>
+     );
+   }
+   ```
+
+## Feature Tours
+
+1. **Implement Tour Guide**
+   ```typescript
+   // components/TourGuide.tsx
+   import { useTour } from '@/hooks/useTour';
+   
+   export function TourGuide() {
+     const { currentStep, steps, next, prev, end } = useTour();
+     
+     if (!currentStep) return null;
+     
+     return (
+       <div className="fixed bottom-4 right-4 bg-white p-4 rounded-lg shadow-lg">
+         <h3 className="font-bold">{currentStep.title}</h3>
+         <p>{currentStep.description}</p>
+         
+         <div className="mt-4 flex gap-2">
+           <button onClick={prev}>Previous</button>
+           <button onClick={next}>Next</button>
+           <button onClick={end}>End Tour</button>
+         </div>
+       </div>
+     );
+   }
+   ```
+
+2. **Define Tour Steps**
+   ```typescript
+   // config/tours.ts
+   export const dashboardTour = {
+     id: 'dashboard',
+     steps: [
+       {
+         target: '#sidebar',
+         title: 'Navigation',
+         description: 'Access all your tools and features here'
+       },
+       {
+         target: '#agents-list',
+         title: 'Your Agents',
+         description: 'View and manage your AI agents'
+       },
+       {
+         target: '#create-agent',
+         title: 'Create New Agents',
+         description: 'Click here to create custom agents'
+       }
+     ]
+   };
+   ```
+
+## Email Sequences
+
+1. **Configure Email Templates**
+   ```typescript
+   // config/emails.ts
+   export const onboardingEmails = [
+     {
+       id: 'welcome',
+       subject: 'Welcome to Agentic Team OS',
+       trigger: 'signup',
+       delay: '0h'
+     },
+     {
+       id: 'getting-started',
+       subject: 'Getting Started Guide',
+       trigger: 'welcome_sent',
+       delay: '24h'
+     },
+     {
+       id: 'first-agent',
+       subject: 'Create Your First Agent',
+       trigger: 'no_agents',
+       delay: '48h'
+     }
+   ];
+   ```
+
+2. **Email Scheduling**
+   ```typescript
+   // utils/email-scheduler.ts
+   export async function scheduleOnboardingEmails(userId: string) {
+     const user = await getUserById(userId);
+     
+     for (const email of onboardingEmails) {
+       await createEmailSchedule({
+         userId,
+         emailId: email.id,
+         sendAt: calculateSendTime(email.delay),
+         metadata: { userName: user.firstName }
+       });
+     }
+   }
+   ```
+
+## Progress Tracking
+
+1. **User Progress Store**
+   ```typescript
+   // packages/core/src/control-plane/entities/onboarding.ts
+   export interface OnboardingProgress {
+     userId: string;
+     completedSteps: string[];
+     lastActivity: Date;
+     toursSeen: string[];
+     emailsReceived: string[];
+   }
+   ```
+
+2. **Progress Updates**
+   ```typescript
+   // packages/core/src/control-plane/usecases/update-onboarding.ts
+   export class UpdateOnboardingProgressUseCase {
+     async execute(userId: string, step: string) {
+       const progress = await this.onboardingRepo.findByUserId(userId);
+       
+       progress.completedSteps.push(step);
+       progress.lastActivity = new Date();
+       
+       await this.onboardingRepo.save(progress);
+       return progress;
+     }
+   }
+   ```
+
+## Best Practices
+
+1. **User Experience**
+   - Keep steps simple and focused
+   - Provide clear progress indicators
+   - Allow skipping non-essential steps
+   - Save progress automatically
+
+2. **Personalization**
+   - Adapt to user role/needs
+   - Use dynamic content
+   - Remember user preferences
+   - Provide contextual help
+
+3. **Analytics**
+   - Track completion rates
+   - Identify drop-off points
+   - Measure time-to-value
+   - Gather feedback
+
+## Next Steps
+
+- [Customize User Billing](/guides/customize-user-billing)
+- [Setup Webhooks](/guides/setup-webhooks)
+- [Coding with AI](/guides/coding-with-ai) 
