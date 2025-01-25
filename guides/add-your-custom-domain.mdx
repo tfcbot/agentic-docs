@@ -1,0 +1,108 @@
+---
+title: 'Add Your Custom Domain'
+description: 'Configure custom domains for your Agentic Team OS applications'
+---
+
+This guide walks you through setting up custom domains for your Agentic Team OS applications.
+
+## Overview
+
+Agentic Team OS uses Cloudflare for DNS management and SST for domain configuration. You'll need to set up domains for:
+- Landing Page (e.g., yourdomain.com)
+- Dashboard (e.g., app.yourdomain.com)
+- API (e.g., api.yourdomain.com)
+
+## Prerequisites
+
+1. **Domain Registration**
+   - Register your domain with any provider
+   - Transfer or delegate DNS to Cloudflare
+
+2. **Cloudflare Setup**
+   - Create a Cloudflare account
+   - Add your domain to Cloudflare
+   - Get your Cloudflare API token
+
+## Configuration Steps
+
+1. **Environment Setup**
+   ```bash
+   # .env file
+   DOMAIN_NAME=yourdomain.com
+   CLOUDFLARE_API_TOKEN=your_api_token
+   ```
+
+2. **SST Configuration**
+   ```typescript
+   // sst.config.ts
+   const web = new sst.aws.Nextjs("Web", {
+     domain: {
+       name: domainName,
+       redirects: [`www.${domainName}`],
+       dns: sst.cloudflare.dns({
+         transform: {
+           record: (record) => {
+             if (record.name === domainName) {
+               record.proxied = true;
+               record.ttl = 1;
+             }
+           },
+         },
+       }),
+     },
+   });
+   ```
+
+3. **Stage-Specific Domains**
+   ```typescript
+   const domainName = $app.stage === "prod"
+     ? process.env.DOMAIN_NAME
+     : `${$app.stage}.${process.env.DOMAIN_NAME}`;
+   ```
+
+## Domain Structure
+
+1. **Landing Page**
+   - Production: yourdomain.com
+   - Staging: staging.yourdomain.com
+   - Sandbox: sandbox.yourdomain.com
+
+2. **Dashboard**
+   - Production: app.yourdomain.com
+   - Staging: staging-app.yourdomain.com
+   - Sandbox: sandbox-app.yourdomain.com
+
+3. **API**
+   - Production: api.yourdomain.com
+   - Staging: staging-api.yourdomain.com
+   - Sandbox: sandbox-api.yourdomain.com
+
+## SSL Configuration
+
+1. **Cloudflare SSL**
+   - Enable Full (strict) SSL/TLS encryption
+   - Configure SSL/TLS encryption mode
+   - Enable Always Use HTTPS
+
+2. **Certificate Management**
+   - SST automatically handles SSL certificates
+   - Certificates are provisioned through AWS ACM
+   - Auto-renewal is handled by SST
+
+## Best Practices
+
+1. **DNS Records**
+   - Use CNAME flattening for apex domains
+   - Enable DNSSEC for added security
+   - Configure proper TTL values
+
+2. **Monitoring**
+   - Monitor domain health
+   - Set up uptime monitoring
+   - Configure DNS monitoring
+
+## Next Steps
+
+- [Setup Webhooks](/guides/setup-webhooks)
+- [Setup Auth](/guides/setup-auth)
+- [User Billing](/guides/user-billing) 

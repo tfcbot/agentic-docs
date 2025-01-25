@@ -51,31 +51,17 @@
       "group": "Guides",
       "pages": [
         "guides/adding-agents",
-        "guides/deployment",
-        "guides/custom-domain"
+        "guides/automate-deployments",
+        "guides/add-your-custom-domain",
+        "guides/setup-webhooks",
+        "guides/setup-auth",
+        "guides/customize-onboarding",
+        "guides/customize-user-billing",
+        "guides/coding-with-ai"
       ]
     },
     {
-      "group": "Integrations",
-      "pages": [
-        "essentials/configuration/clerk",
-        "essentials/configuration/aws",
-        "essentials/configuration/unkey",
-        "essentials/configuration/cloudflare",
-        "essentials/configuration/stripe",
-        "essentials/configuration/openai",
-        "essentials/configuration/sst"
-      ]
-    },
-    {
-      "group": "Security",
-      "pages": [
-        "security/overview",
-        "security/self-hosting"
-      ]
-    },
-    {
-      "group": "Examples",
+      "group": "Agents",
       "pages": [
         "examples/value-strategist",
         "examples/tech-strategist",

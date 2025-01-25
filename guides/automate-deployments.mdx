@@ -1,0 +1,83 @@
+---
+title: 'Automate Deployments'
+description: 'Set up automated deployments for your Agentic Team OS'
+---
+
+This guide walks you through setting up automated deployments for your Agentic Team OS applications.
+
+## Overview
+
+Agentic Team OS uses SST's auto-deployment feature to automatically deploy your applications when you push changes to specific branches.
+
+## Setting Up Auto-Deployment
+
+1. **Configure SST Console**
+   - Log into your SST Console
+   - Navigate to the Settings tab
+   - Enable auto-deployment for your repositories
+
+2. **Configure Branch Rules**
+   ```typescript
+   // sst.config.ts
+   console: {
+     autodeploy: {
+       target(event) {
+         if (event.type === "branch") {
+           switch (event.branch) {
+             case "main":
+               return { stage: "production" };
+             case "develop":
+               return { stage: "staging" };
+             case "sandbox":
+               return { stage: "sandbox" };
+           }
+         }
+       }
+     }
+   }
+   ```
+
+3. **Set Up GitHub Actions**
+   - Create `.github/workflows/deploy.yml`
+   - Configure the workflow to trigger on push
+   - Add necessary secrets and environment variables
+
+## Deployment Stages
+
+1. **Sandbox Environment**
+   - Automatically deploys from the `sandbox` branch
+   - Used for development and testing
+   - Resources can be freely created/deleted
+
+2. **Staging Environment**
+   - Deploys from the `develop` branch
+   - Mirror of production for testing
+   - Protected resources
+
+3. **Production Environment**
+   - Deploys from the `main` branch
+   - Requires pull request approval
+   - Maximum resource protection
+
+## Best Practices
+
+1. **Branch Protection**
+   - Enable branch protection rules
+   - Require pull request reviews
+   - Enable status checks
+
+2. **Environment Variables**
+   - Use stage-specific environment files
+   - Store sensitive values in SST Secrets
+   - Never commit secrets to the repository
+
+3. **Monitoring**
+   - Set up deployment notifications
+   - Monitor deployment logs
+   - Configure error alerts
+
+## Next Steps
+
+- [Add Your Custom Domain](/guides/add-your-custom-domain)
+- [Setup Webhooks](/guides/setup-webhooks)
+- [Setup Auth](/guides/setup-auth) 

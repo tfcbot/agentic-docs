@@ -1,0 +1,170 @@
+---
+title: 'Setup Webhooks'
+description: 'Configure webhooks for Stripe and other integrations'
+---
+
+This guide walks you through setting up webhooks for various integrations in your Agentic Team OS.
+
+## Overview
+
+Webhooks are essential for handling asynchronous events from:
+- Stripe (payments and subscriptions)
+- Clerk (user authentication)
+- Unkey (API key management)
+
+## Stripe Webhooks
+
+1. **Create Webhook Endpoint**
+   ```typescript
+   // infra/api.ts
+   api.route("POST /webhooks/stripe", {
+     function: {
+       handler: "packages/functions/src/webhooks/stripe.handler",
+     }
+   });
+   ```
+
+2. **Configure Stripe Dashboard**
+   - Go to Stripe Dashboard > Developers > Webhooks
+   - Add endpoint: `https://api.yourdomain.com/webhooks/stripe`
+   - Select events to listen for:
+     - `payment_intent.succeeded`
+     - `customer.subscription.updated`
+     - `customer.subscription.deleted`
+
+3. **Implement Handler**
+   ```typescript
+   // packages/functions/src/webhooks/stripe.ts
+   export const handler = async (event) => {
+     const sig = event.headers['stripe-signature'];
+     const payload = event.body;
+     
+     try {
+       const stripeEvent = stripe.webhooks.constructEvent(
+         payload,
+         sig,
+         process.env.STRIPE_WEBHOOK_SECRET
+       );
+       
+       switch (stripeEvent.type) {
+         case 'payment_intent.succeeded':
+           await handlePaymentSuccess(stripeEvent.data.object);
+           break;
+         // Handle other events
+       }
+       
+       return {
+         statusCode: 200,
+         body: JSON.stringify({ received: true }),
+       };
+     } catch (err) {
+       return {
+         statusCode: 400,
+         body: JSON.stringify({ error: err.message }),
+       };
+     }
+   };
+   ```
+
+## Clerk Webhooks
+
+1. **Create Webhook Endpoint**
+   ```typescript
+   api.route("POST /webhooks/clerk", {
+     function: {
+       handler: "packages/functions/src/webhooks/clerk.handler",
+     }
+   });
+   ```
+
+2. **Configure Clerk Dashboard**
+   - Go to Clerk Dashboard > Webhooks
+   - Add endpoint: `https://api.yourdomain.com/webhooks/clerk`
+   - Select events:
+     - `user.created`
+     - `user.updated`
+     - `user.deleted`
+
+3. **Implement Handler**
+   ```typescript
+   // packages/functions/src/webhooks/clerk.ts
+   export const handler = async (event) => {
+     const sig = event.headers['svix-signature'];
+     const payload = event.body;
+     
+     try {
+       // Verify webhook signature
+       const isValid = verifyClerkWebhook(payload, sig);
+       if (!isValid) throw new Error('Invalid signature');
+       
+       const data = JSON.parse(payload);
+       
+       switch (data.type) {
+         case 'user.created':
+           await handleUserCreated(data);
+           break;
+         // Handle other events
+       }
+       
+       return { statusCode: 200 };
+     } catch (err) {
+       return { statusCode: 400 };
+     }
+   };
+   ```
+
+## Unkey Webhooks
+
+1. **Create Webhook Endpoint**
+   ```typescript
+   api.route("POST /webhooks/unkey", {
+     function: {
+       handler: "packages/functions/src/webhooks/unkey.handler",
+     }
+   });
+   ```
+
+2. **Configure Unkey Dashboard**
+   - Go to Unkey Dashboard > Webhooks
+   - Add endpoint: `https://api.yourdomain.com/webhooks/unkey`
+   - Select relevant events
+
+## Best Practices
+
+1. **Security**
+   - Always verify webhook signatures
+   - Use environment variables for secrets
+   - Implement proper error handling
+
+2. **Reliability**
+   - Implement idempotency
+   - Add retry logic for failed events
+   - Log webhook events for debugging
+
+3. **Monitoring**
+   - Monitor webhook health
+   - Set up alerts for failures
+   - Track webhook latency
+
+## Testing Webhooks
+
+1. **Local Testing**
+   ```bash
+   # Install Stripe CLI
+   brew install stripe/stripe-cli/stripe
+
+   # Forward webhooks locally
+   stripe listen --forward-to localhost:3001/webhooks/stripe
+   ```
+
+2. **Test Events**
+   ```bash
+   # Trigger test webhook
+   stripe trigger payment_intent.succeeded
+   ```
+
+## Next Steps
+
+- [Setup Auth](/guides/setup-auth)
+- [User Billing](/guides/user-billing)
+- [Cursor AI Setup](/guides/cursor-ai-setup) 
