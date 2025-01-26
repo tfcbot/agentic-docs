@@ -58,8 +58,13 @@ See below for the configuration of each template.
 
 ### Add Your Custom Domain to the API Template
 
-Based on the documentation and code, I'll explain how SST configures custom domains and providers in this setup:
+To add your custom domain to the API template, you need to set the `CLOUDFLARE_API_TOKEN` and `BASE_DOMAIN` environment variables in your `.env.{stage}` file.
+```bash
+CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
+BASE_DOMAIN=yourdomain.com
+```
 
+Below breaks down the configuration of the API template that automatically configures the custom domain. 
 1. Provider Configuration:
 The `sst.config.ts` file configures Cloudflare as a provider alongside AWS:
 
@@ -120,17 +125,15 @@ export const api = new sst.aws.ApiGatewayV2('BackendApi', {
 
 ### Add Your Custom Domain to the Dashboard Template
 
-The Dashboard template uses SST's NextjsSite construct with Cloudflare DNS integration:
-
-1. Environment Variables:
-Add the following to your `.env` file:
+To add your custom domain to the Dashboard template, you need to set the `CLOUDFLARE_API_TOKEN` and `BASE_DOMAIN` environment variables in your `.env.{stage}` file.
 
 ```bash
 CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
 BASE_DOMAIN=yourdomain.com
 ```
 
-2. SST Configuration:
+Below breaks down the configuration of the Dashboard template that automatically configures the custom domain. 
+
 The `sst.config.ts` file configures the custom domain and Cloudflare provider:
 
 ```typescript
@@ -174,17 +177,15 @@ The domain structure follows these patterns:
 
 ### Landing Page Template
 
-The Landing Page template uses SST's Nextjs construct to configure custom domains with Cloudflare integration:
-
-1. Environment Variables:
-Add the following to your `.env` file:
+To add your custom domain to the Landing Page template, you need to set the `CLOUDFLARE_API_TOKEN` and `BASE_DOMAIN` environment variables in your `.env.{stage}` file.
 
 ```bash
 CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
-DOMAIN_NAME=yourdomain.com
+BASE_DOMAIN=yourdomain.com
 ```
 
-2. SST Configuration:
+Below breaks down the configuration of the Landing Page template that automatically configures the custom domain. 
+
 The `sst.config.ts` file handles domain configuration:
 
 ```typescript

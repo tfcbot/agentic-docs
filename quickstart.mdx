@@ -3,8 +3,8 @@ title: 'Quickstart'
 description: 'Setting up your Sandbox Environment'
 ---
 
+This guide will walk you through the process of setting up your sandbox Agentic Team OS.  
 
-Follow these steps to set up your sandbox Agentic Team OS environment. 
 Having a sandbox environment is a great way to test your ideas without having to worry about breaking things. 
 
 The templates come with example agents you can use as a baseline for your own agents.
@@ -41,12 +41,12 @@ cd my-agentic-project
 
 ```bash
 # Clone Dashboard Template
-gh repo clone tfcbot/agentic-dashboard-template
+gh repo clone tfcbot/agentic-dashboard-template dashboard
 ```
 
 ```bash
 # Clone API Template
-gh repo clone tfcbot/agentic-api-template
+gh repo clone tfcbot/agentic-api-template api
 ```
 Go with cloning over forking because you should be making your own significant changes to these templates. 
 
@@ -111,7 +111,6 @@ The endpoint is already preconfigured in the API template as `/checkout`.
 
 Create a webhook for the `checkout-session.completed` event using the url `https://sandbox-api.yourdomain.com/checkout/v1`. 
 
-
 Next, update your `.env.sandbox` file with the correct values for stripe.
 
 
@@ -170,7 +169,7 @@ cd api
 sst secrets load .env.sandbox --stage sandbox
 ```
 
-Do this for the both the API and Dashboard templates.
+Do this for the both the API and Dashboard repositories.
 
 ## 5. Start your sandbox environment
 
