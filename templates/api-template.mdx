@@ -6,10 +6,16 @@ description: 'Template for building a serverless API service'
 The API template provides a serverless API service built with SST. It follows a clean architecture pattern designed for scalability and maintainability.
 
 You can find the full source code for the API template [here](https://github.com/tfcbot/agentic-api-template).
+
 ## Project Structure
 
 ```bash
 agentic-api-template/
+|-- infra/                           # Infrastructure definitions
+|   |-- api.ts                       # API Gateway configuration
+|   |-- database.ts                  # DynamoDB tables
+|   |-- queues.ts                    # SQS queues
+|   |-- topics.ts                    # SNS topics
 |-- packages/                        # Core packages directory
 |   |-- core/                        # Core business logic
 |   |   |-- src/
@@ -28,15 +34,9 @@ agentic-api-template/
 |   `-- utils/                       # Shared utilities
 |       |-- src/
 |       |   |-- metadata/            # Schema definitions
-|       |   |-- @tools/               # Core utilities
+|       |   |-- tools/               # Core utilities
 |       |   `-- vendors/             # Third-party integrations
 |       `-- package.json
-|
-|-- infra/                           # Infrastructure definitions
-|   |-- api.ts                       # API Gateway configuration
-|   |-- database.ts                  # DynamoDB tables
-|   |-- queues.ts                    # SQS queues
-|   |-- topics.ts                    # SNS topics
 |
 |-- sst.config.ts                    # SST configuration
 |-- .env.*                           # Environment configurations
@@ -50,22 +50,20 @@ The core package follows a clean architecture pattern with three main modules:
 
 ```bash
 /core/src/
-|-- agent-plane/           # Agent-specific logic
+|-- agent-plane/ 
+|   |-- agent/            # Top level agent module
+|   |   |-- adapters/     # Interface adapters
+|   |   |-- metadata/     # Business metadata
+|   |   `-- usecases/     # Business logic
+|-- control-plane/        # User and billing modules
 |   |-- adapters/         # Interface adapters
-|   |-- entities/         # Business entities
-|   `-- usecases/        # Business logic
+|   |-- metadata/         # Business metadata
+|   `-- usecases/         # Business logic
 |
-|-- control-plane/        # User and billing
-|   |-- adapters/
-|   |   |-- primary/     # Input ports
-|   |   `-- secondary/   # Output ports
-|   |-- entities/
-|   `-- usecases/
-|
-`-- orchestrator/         # Request orchestration
-    |-- adapters/
-    |-- entities/
-    `-- usecases/
+|-- orchestrator/         # Request orchestration
+|   |-- adapters/         # Interface adapters
+|   |-- metadata/         # Business metadata
+|   `-- usecases/         # Business logic
 ```
 
 2. **Functions Package (`/packages/functions`)**
@@ -90,7 +88,7 @@ Shared utilities and tools:
 |   |-- apikey.schema.ts
 |   |-- credit.schema.ts
 |
-|-- @tools/              # Core utilities
+|-- tools/              # Core utilities
 |   |-- ai-middleware.ts
 |   |-- api-key-manager.ts
 |   |-- credit-manager.ts
@@ -251,6 +249,8 @@ sst deploy --stage sandbox
 ```
 
 Deployment to production is handled by SST Autodeploy when merging to the main branch.
+
+This set up is a modified version of the [SST Monorepo setup](https://sst.dev/docs/set-up-a-monorepo/).
 
 For more details on SST configuration options, refer to the [SST Config Documentation](https://sst.dev/docs/reference/config/).
 

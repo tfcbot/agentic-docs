@@ -11,16 +11,36 @@ You can find the full source code for the Dashboard template [here](https://gith
 
 ```bash
 agentic-dashboard-template/
-|-- src/                # Application source code
-|   |-- app/            # Next.js app router pages
-|   |-- components/    # Reusable UI components
-|   |-- context/       # React context providers
-|   |-- hooks/         # Custom React hooks
-|   |-- schemas/       # Type definitions and schemas
-|-- tests/             # Test files
-|-- .sst/             # SST build artifacts
-|-- sst.config.ts     # SST configuration
-|-- .env.*            # Environment configurations
+|-- src/                    # Application source code
+|   |-- app/                # Next.js app router pages
+|   |   |-- (auth)/         # Authentication related pages
+|   |   |   |-- sign-in/
+|   |   |   |-- sign-up/
+|   |   |-- (authenticated)/ # Protected routes
+|   |   |   |-- agent/
+|   |   |   |-- orders/
+|   |   |   |-- settings/
+|   |-- components/          # Reusable UI components
+|   |-- context/             # React context providers
+|   |-- hooks/               # Custom React hooks
+|   |   |-- useAgents/
+|   |   |-- useApi/
+|   |-- schemas/             # Type definitions and schemas
+|   |   |-- agent.ts
+|   |   |-- http-responses.ts
+|-- public/                   # Static files
+|-- tests/                    # Test files
+|-- .env.*                    # Environment configurations
+|-- .eslintrc.js              # ESLint configuration
+|-- .gitignore                # Git ignore rules
+|-- jest.config.js            # Jest configuration
+|-- jest.setup.ts             # Jest setup
+|-- next.config.js            # Next.js configuration
+|-- package.json              # Project dependencies
+|-- postcss.config.mjs        # PostCSS configuration
+|-- tailwind.config.js        # Tailwind configuration
+|-- tsconfig.json             # TypeScript configuration
+|-- sst.config.ts            # SST configuration
 ```
 
 Let's explore the key components of the dashboard template:
@@ -135,7 +155,6 @@ CLOUDFLARE_API_TOKEN=<cloudflare_api_token>
 1. Create a `.env.test` file with test credentials
 
 ```bash
-TEST_AUTH_TOKEN=<test_auth_token>
 NEXT_API_URL=<api_url>
 ```
 
@@ -289,4 +308,11 @@ Each deployment uses CodeBuild with large compute resources for optimal build pe
 For more details on SST configuration options, refer to the [SST Config Documentation](https://sst.dev/docs/reference/config/).
 
 
+### SST Deployment
 
+```bash
+# Deploy to sandbox
+sst deploy --stage sandbox
+```
+
+Deployment to production is handled by SST Autodeploy when you do a PR from dev to main.

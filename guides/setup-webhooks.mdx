@@ -5,7 +5,7 @@ description: 'Configure webhooks for Stripe and other integrations'
 
 This guide walks you through setting up webhooks for various integrations in your Agentic Team OS.
 
-Webhooks are configured in the [API Template](/templates/api-template)
+Webhooks are configured in the [API Template](/templates/api-template).
 ## Overview
 
 Webhooks are essential for handling asynchronous events from:
@@ -13,7 +13,7 @@ Webhooks are essential for handling asynchronous events from:
 - Clerk (user authentication)
 
 
-The checkout webhook is implemented in the billing module of the control plane using the [AMU Pattern](concepts/amu-pattern.mdx)
+The checkout webhook is implemented in the billing module of the control plane using the [AMU Pattern](concepts/amu-pattern.mdx).
 
 This guide covers setting up the webhook not implementing the billing logic. 
 
@@ -74,8 +74,6 @@ Clerk webhooks are really extensible and go beyond just a trigger on signup.
 
 ## Configure Your Clerk Webhooks
 
- 
-
 **Set up webhook endpoint**
 1. Go to the Webhooks page in Clerk Dashboard
 2. Select "Add Endpoint"
@@ -86,7 +84,6 @@ Clerk webhooks are really extensible and go beyond just a trigger on signup.
 **Add Signing Secret**
 1. Copy the Signing Secret from your endpoint's settings page
 2. Add it to your `.env.{stage}` file as `ClerkWebhookSecret`
-
 
 Test the webhook by creating a new user in the Clerk Dashboard. 
 1. Create a JWT template in the clerk dashboard 

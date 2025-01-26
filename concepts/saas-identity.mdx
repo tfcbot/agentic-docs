@@ -3,7 +3,9 @@ title: 'SaaS Identity'
 description: 'Understanding tenant isolation through JWT claims'
 ---
 
-SaaS Identity is a core concept in Agentic Team OS that provides secure tenant isolation using JWT (JSON Web Token) claims. This pattern ensures that each request is properly authenticated and scoped to the correct tenant.
+SaaS Identity is a core concept in Agentic Team OS that provides secure tenant isolation using JWT (JSON Web Token) claims. 
+
+This pattern ensures that each request is properly authenticated and scoped to the correct tenant.
 
 ## Overview
 
@@ -15,7 +17,7 @@ The SaaS Identity pattern uses JWT tokens with custom claims to:
 
 <img src="/images/saas-identity.png" alt="SaaS Identity Sequence Diagram" />
 
-The sequence diagram above illustrates the flow of a request through the SaaS Identity system:
+The diagram above illustrates the flow of a request through the SaaS Identity system:
 1. The API receives and parses the incoming event with a JWT token
 2. The token is validated with the SaaS Identity Provider(s)
 3. The claims within the token are validated
@@ -198,4 +200,4 @@ export const checkoutSessionWebhookAdapter = async (event: any) => {
 }
 ```
 
-Go to the page on [Stripe](intgrations/stripe) for more information on how to configure the webhook for this flow. 
+Go to the page [Setup Webhooks](/guides/setup-webhooks) for more information on how to configure the webhooks to enable this flow.

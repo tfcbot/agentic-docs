@@ -9,7 +9,9 @@ This guide walks you through the process of adding new AI agents to your Agentic
 
 Follow these steps to implement a new agent in your application.
 
-### 1. Create Agent Configuration
+### Implement the Agent UI
+
+#### 1. Create Agent Configuration
 
 First, create your agent configuration in your dashboard project:
 
@@ -92,7 +94,7 @@ export const yourAgent: AgentConfig = {
 };
 ```
 
-### 2. Define Schemas
+#### 2. Define Schemas
 
 Add your agent's types in your schemas:
 
@@ -149,10 +151,29 @@ export type RequestAgentOutput = z.infer<typeof RequestAgentOutputSchema>;
 export type Deliverable = z.infer<typeof DeliverableSchema>;
 export type DeliverableDTO = z.infer<typeof DeliverableDTOSchema>;
 ```
+### 3. Update the agent service 
 
-### 3. Update API Infrastructure
+### 4. Update the API service
 
-First, set up the necessary infrastructure components for your agent:
+### 5. Add tests for the agent
+
+
+Once the UI is complete, you can move onto updating the API 
+
+
+## Add API Endpoints for the agent
+
+First, add a new endpoint for the agent in the `infra/api.ts` file. 
+
+```typescript
+// infra/api.ts
+api.route("POST /your-agent", {
+  link: [...apiResources],
+  handler: "./packages/functions/src/orchestrator.api.handleRequestYourAgent",
+  timeout: "900 seconds"
+})
+```
+Then add a new queue for the agent in the `infra/queues.ts` file. 
 
 ```typescript
 // infra/queues.ts
@@ -177,8 +198,9 @@ yourAgentQueue.subscribe({
 })
 ```
 
+Update the `orderTopic` to be linked with the new queue in the `infra/topic.ts` file. 
+
 ```typescript
-// infra/topic.ts
 orderTopic.subscribeQueue(
   "yourAgent", 
   yourAgentQueue.arn, 
@@ -190,25 +212,18 @@ orderTopic.subscribeQueue(
 )
 ```
 
-Then, add your agent's endpoint to your API infrastructure:
 
-```typescript
-// infra/api.ts
-api.route("POST /your-agent", {
-  link: [...apiResources],
-  handler: "./packages/functions/src/orchestrator.api.handleRequestYourAgent",
-  timeout: "900 seconds"
-})
-```
-
-### 4. Update the Orchestrator
+### 2. Update the Orchestrator
 
 The orchestrator layer follows the AMU (Adapter-Metadata-Usecase) pattern to handle incoming requests and manage the flow of data. Here's how to implement each component:
+
+Here you will wire up the orchestrator so it publishes an order to the `orderTopic` and then that will trigger the agent queue. 
 
 #### Primary Adapter
 
 The primary adapter handles incoming API Gateway events and validates user input:
 
+Start with the `request-your-agent.adapter.ts` file. This will be in the `adapters/primary` folder of the orchestrator. 
 ```typescript
 // packages/core/src/orchestrator/adapters/primary/request-your-agent.adapter.ts
 import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
@@ -261,60 +276,60 @@ export const requestYourAgentAdapter = async (
 
 #### Metadata Layer
 
-The metadata layer defines the schemas and types used throughout the orchestrator:
+
+Next update the metadata layer to add your agent inputs and outputs for the orchestrator `agent-plane.schema.ts` file. 
 
 ```typescript
 // packages/core/src/orchestrator/metadata/order.schema.ts
-import { z } from 'zod';
 
-export enum Topic {
-  orders = 'orders'
-}
-
-export enum Queue {
-  yourAgent = 'yourAgent'
-}
-
-export enum Status {
-  Pending = 'pending',
-  InProgress = 'in-progress',
-  Completed = 'completed',
-  Failed = 'failed'
-}
-
-export const YourAgentOrderSchema = z.object({
-  topic: z.literal(Topic.orders),
-  queue: z.literal(Queue.yourAgent),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-  payload: z.object({
-    orderId: z.string(),
-    userId: z.string(),
-    keyId: z.string(),
-    deliverableId: z.string(),
-    deliverableName: z.string(),
-    agentId: z.string(),
-    field1: z.string(),
-    field2: z.string()
-  })
+export const YourAgentOrderInputSchema = BasePayloadSchema.extend({
+  field1: z.string(),
+  field2: z.string(),
+  deliverableName: z.string(),
+  agentId: z.string()
 });
 
-export type YourAgentOrder = z.infer<typeof YourAgentOrderSchema>;
+export const YourAgentOrderOutputSchema = z.object({
+  orderId: z.string(),
+  orderStatus: z.string(),
+  orderCreatedAt: z.string(),
+  deliverableName: z.string()
+});
+
+export type YourAgentOrderInput = z.infer<typeof YourAgentOrderInputSchema>;
+export type YourAgentOrderOutput = z.infer<typeof YourAgentOrderOutputSchema>;
 ```
 
+Then update the `http-responses.schema.ts` file to add your agent response that will be returned to the client.
+
+This should be a success response that will be returned from the orchestrator. 
+
+The process will occur in the background and the client will receive a 201 response.
+
+
 ```typescript
-// packages/core/src/orchestrator/metadata/http-responses.schema.ts
+
 export const OrchestratorHttpResponses = {
-  YourAgentRequestReceived: ({ body }) => ({
-    statusCode: HttpStatusCode.CREATED,
-    body: JSON.stringify(body)
-  })
-} as const;
+  ...HttpResponses,
+  YourAgentRequestReceived: (params: HttpResponseParams<OrderResponseBody>) => 
+    createHttpResponse(HttpStatusCode.CREATED, params),
+}
+```
+
+Also update the `order.enum.ts` to define the new agent cost. 
+
+```typescript
+// packages/core/src/orchestrator/metadata/order.enum.ts
+export enum AgentCost {
+  YourAgent = 20,
+}
 ```
 
 #### Use Case
 
 The use case contains the business logic for processing the request:
+
+In this usecase you will create the order and publish it to the `orderTopic`. 
 
 ```typescript
 // packages/core/src/orchestrator/usecases/request-your-agent.usecase.ts
@@ -357,7 +372,7 @@ export async function publishYourAgentUseCase(request: RequestAgentInput): Promi
     });
 
     // Update user credits
-    await controlPlaneAdapter.updateRemainingCredits({
+    await updateCreditsAdapter.updateRemainingCredits({
       keyId: request.keyId,
       credits: AgentCost.YourAgent
     });
@@ -380,93 +395,36 @@ export async function publishYourAgentUseCase(request: RequestAgentInput): Promi
   }
 }
 ```
+Finally you will need to wire up the functions in '/functions/src'
 
-#### Secondary Adapters
-
-The secondary adapters handle external interactions:
-
-```typescript
-// packages/core/src/orchestrator/adapters/secondary/topic-publisher.adapter.ts
-import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
-import { YourAgentOrder } from '@orchestrator/metadata/order.schema';
-import { Resource } from 'sst/node/resource';
-
-export class TopicPublisher {
-  private client: SNSClient;
-  private topicArn: string;
-
-  constructor() {
-    this.client = new SNSClient({});
-    this.topicArn = Resource.orderTopic.arn;
-  }
-
-  async publishOrder(order: YourAgentOrder): Promise<void> {
-    try {
-      const command = new PublishCommand({
-        TopicArn: this.topicArn,
-        Message: JSON.stringify(order),
-        MessageAttributes: {
-          queue: {
-            DataType: 'String',
-            StringValue: order.queue
-          }
-        }
-      });
-
-      await this.client.send(command);
-    } catch (error) {
-      console.error('Error publishing to SNS:', error);
-      throw error;
-    }
-  }
-}
-```
+Update the `orchestrator.api.ts` file to include your new agent handler. 
 
 ```typescript
-// packages/core/src/orchestrator/adapters/secondary/agent-plane.adapter.ts
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { Resource } from 'sst/node/resource';
-
-export const agentPlaneAdapter = {
-  async saveOrder(order: {
-    orderId: string;
-    userId: string;
-    deliverableId: string;
-    deliverableName: string;
-    orderStatus: string;
-    orderCreatedAt: string;
-    orderUpdatedAt: string;
-  }): Promise<void> {
-    const client = DynamoDBDocumentClient.from(new DynamoDBClient({}));
-    await client.send(new PutCommand({
-      TableName: Resource.ordersTable.tableName,
-      Item: order
-    }));
-  }
-};
+// packages/functions/src/orchestrator.api.ts
+export const requestYourAgentHandler = createHandler(requestYourAgentAdapter);
 ```
-
-This implementation follows the AMU pattern to:
-1. Validate and process incoming requests (Primary Adapter)
-2. Define data structures and types (Metadata)
-3. Implement business logic (Use Case)
-4. Handle external interactions (Secondary Adapters)
 
 ### 5. Implement Agent Plane Logic
 
-The agent plane implementation follows the AMU (Adapter-Metadata-Usecase) pattern for clean architecture and separation of concerns:
+The agent plane implementation follows the [AMU](/guides/amu-pattern) pattern for clean architecture and separation of concerns:
 
-#### Metadata Layer
+Here you will implement the SQS handler for the agent, it's main business logic. 
 
-```typescript
-// packages/core/src/agent-plane/your-agent/metadata/your-agent.prompt.ts
-export const yourAgentSystemPrompt = (input: RequestAgentInput) => `
-You are an expert in your domain.
-Your task is to create a detailed one-page deliverable based on the provided input:
-${JSON.stringify(input)}
-Focus on providing actionable insights and recommendations.
-`;
+Create a new directory for your agent in the `agent-plane` folder. 
+
+```bash
+cd api 
+mkdir -p packages/core/src/agent-plane/your-agent
+```
+
+Within the new directory you will create the following files: 
+
+- `adapters/primary/your-agent-action.adapter.ts`
+- `adapters/secondary/datastore.adapter.ts`
+- `adapters/secondary/openai.adapter.ts`
+- `metadata/your-agent.prompt.ts`
+- `metadata/your-agent.schema.ts`
+- `usecases/your-agent-action.usecase.ts`
 ```
 
 #### Primary Adapter
@@ -493,10 +451,23 @@ export const createAgentAdapter = async (event: SQSEvent) => {
 };
 ```
 
-#### Use Case
+
+#### Metadata Layer
 
 ```typescript
-// packages/core/src/agent-plane/your-agent/usecases/create-agent.usecase.ts
+// packages/core/src/agent-plane/your-agent/metadata/your-agent.prompt.ts
+export const yourAgentSystemPrompt = (input: RequestAgentInput) => `
+You are an expert in your domain.
+Your task is to create a detailed one-page deliverable based on the provided input:
+${JSON.stringify(input)}
+Focus on providing actionable insights and recommendations.
+`;
+
+#### Use Case
+Inside the `usecases` folder you will create the main business logic for your agent. 
+Below is an example of the `your-agent-action.usecase.ts` file. 
+
+```typescript
 import { Deliverable, DeliverableDTO, RequestAgentInput } from '@agent-plane/your-agent/metadata/your-agent.schema'
 import { runAgent } from '@agent-plane/your-agent/adapters/secondary/openai.adapter';
 import { deliverableRepository } from '@agent-plane/your-agent/adapters/secondary/datastore.adapter';
@@ -528,6 +499,10 @@ export const createAgentUsecase = async (input: RequestAgentInput): Promise<Mess
 ```
 
 #### Secondary Adapters
+
+The secondary adapters are used to interact with external services. 
+
+In this case we are using OpenAI to generate the deliverable using the Assitants API. 
 
 ```typescript
 // packages/core/src/agent-plane/your-agent/adapters/secondary/openai.adapter.ts
@@ -631,6 +606,14 @@ export const runAgent = withRetry(createAgent, {
   onRetry: (error: Error) => console.warn('Retrying agent generation due to error:', error)
 });
 ```
+Finally you will need to wire up the functions in '/functions/src'
+
+Update the `agent-plane.api.ts` file to include your new agent handler. 
+```typescript
+// packages/functions/src/agent-plane.api.ts
+export const yourAgentHandler = createSQSHandler(createAgentAdapter);
+```
+
 
 ### 6. Testing
 
