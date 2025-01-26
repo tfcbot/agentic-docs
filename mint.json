@@ -55,7 +55,6 @@
         "guides/add-your-custom-domain",
         "guides/setup-webhooks",
         "guides/setup-auth",
-        "guides/customize-onboarding",
         "guides/customize-user-billing",
         "guides/coding-with-ai"
       ]
