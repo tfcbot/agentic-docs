@@ -5,6 +5,7 @@ description: 'Configure webhooks for Stripe and other integrations'
 
 This guide walks you through setting up webhooks for various integrations in your Agentic Team OS.
 
+Webhooks are configured in the [API Template](/templates/api-template)
 ## Overview
 
 Webhooks are essential for handling asynchronous events from:
@@ -30,6 +31,11 @@ You can implment a more custom billing model by modifying the billing module.
    - Add a new webhook endpoint with your API URL: `https://api.${DOMAIN_NAME}/checkout-webhook`
    - Copy the webhook signing secret
    - Add it to your secrets as `StripeSecretKey`
+
+3. **Configure your stripe product**
+   - Go to the [Stripe Dashboard](https://dashboard.stripe.com/products)
+   - Copy the price ID for your product 
+   - Add it to your secrets as `StripePriceId`
 
 3. **Enable Events**
    - Select the events you want to listen for
