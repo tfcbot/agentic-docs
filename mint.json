@@ -52,7 +52,8 @@
       "pages": [
         "guides/setup-webhooks",
         "guides/add-your-custom-domain",
-        "guides/automate-deployments"
+        "guides/automate-deployments",
+        "guides/adding-agents"
       ]
     },
     {

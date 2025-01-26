@@ -5,4 +5,739 @@ description: 'Develop a comprehensive growth and go-to-market strategy'
 
 The Growth Strategist agent helps you create a comprehensive growth and go-to-market strategy based on your value proposition and technical capabilities.
 
-( Guide Comming Soon)
+## Implementation Guide
+
+Follow this guide to implement the Growth Strategist agent in your Agentic Templates application.
+
+### 1. Create Agent Configuration
+
+First, create the Growth Strategist configuration in your dashboard project:
+
+```typescript
+// src/lib/agents/growthStrategist.agent.ts
+import type { AgentConfig, OrderFormData, RequestGrowthStrategyInput } from '@/schemas';
+import { agentService } from '@/services/agentService';
+
+export const growthStrategistAgent: AgentConfig = {
+    id: '3f8e2b9a-6d1c-4f5e-9c7d-8b2a4e3d1f0c',
+    name: 'Growth Strategist',
+    title: 'SaaS Growth Expert',
+    description: 'An expert in SaaS growth strategy and optimization',
+    category: 'strategy',
+    imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80&auto=format',
+    credits: 20,
+    available: true,
+    keyDeliverables: [
+        'Distribution channel strategy recommendations',
+        'Customer journey optimization plan',
+        'Early customer acquisition roadmap (0-10 customers)',
+        'Growth scaling strategy (10-100 customers)',
+        'Growth strategies'
+    ],
+    packageDescription: [
+        'One Page Revenue Growth Strategy'
+    ],
+    estimatedDelivery: 'Less than 1 min',
+    fields: {
+        deliverableName: {
+            type: 'text',
+            label: 'Deliverable Name',
+            required: true,
+            placeholder: 'Enter in your deliverable name'
+        },
+        applicationIdea: {
+            type: 'textarea',
+            label: 'Application Idea',
+            required: true,
+            placeholder: 'Enter in your application idea'
+        },
+        idealCustomer: {
+            type: 'text',
+            label: 'Ideal Customer',
+            required: true,
+            placeholder: 'Enter in your ideal customer'
+        },
+        targetAnnualRevenue: {
+            type: 'number',
+            label: 'Target Annual Revenue ($)',
+            required: true,
+            placeholder: 'What is your target annual revenue?'
+        }
+    },
+    faq: [
+        {
+            question: 'What is the purpose of this agent?',
+            answer: 'This agent is designed to help you optimize your SaaS pricing and revenue strategy. It provides actionable advice based on your specific situation, considering factors such as business model, current customer base, and target price point.'
+        }
+    ],
+    deliverable: {
+        sections: [
+            {
+                id: 'applicationIdea',
+                label: 'Application Idea',
+                type: 'text',
+                description: 'Description of the application idea',
+                order: 1
+            },
+            {
+                id: 'idealCustomer',
+                label: 'Ideal Customer', 
+                type: 'text',
+                description: 'Description of the ideal customer',
+                order: 2
+            },
+            {
+                id: 'distributionChannels',
+                label: 'Distribution Channels',
+                type: 'list',
+                description: 'Recommended channels for customer acquisition',
+                order: 3
+            },
+            {
+                id: 'customerJourney',
+                label: 'Customer Journey',
+                type: 'text', 
+                description: 'Detailed customer journey optimization plan',
+                order: 4
+            },
+            {
+                id: 'firstTenCustomers',
+                label: 'First Ten Customers',
+                type: 'text',
+                description: 'Strategy for acquiring early customers',
+                order: 5
+            },
+            {
+                id: 'firstHundredCustomers', 
+                label: 'First Hundred Customers',
+                type: 'text',
+                description: 'Scaling strategy for growth phase',
+                order: 6
+            },
+            {
+                id: 'growthStrategies',
+                label: 'Growth Strategies',
+                type: 'text',
+                description: 'Key strategies for growth',
+                order: 7
+            }
+        ],
+        availableFormats: ['pdf', 'markdown'],
+    },
+    handler: async (token: string, data: OrderFormData) => {
+        const response = await agentService.handleGrowthStrategyRequest(
+            token,
+            data.payload.formData as RequestGrowthStrategyInput
+        );
+        return response;
+    }
+};
+```
+
+### 2. Define Schemas
+
+Add the Growth Strategist types in your schemas:
+
+```typescript
+// packages/core/src/agent-plane/growth-strategist/metadata/growth-strategist.schema.ts
+import { z } from 'zod';
+
+export const GrowthStrategySchema = z.object({
+  sections: z.object({
+    applicationIdea: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('text'),
+      description: z.string().optional(),
+      data: z.string(),
+    }),
+    idealCustomer: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('text'),
+      description: z.string().optional(),
+      data: z.string(),
+    }),
+    distributionChannels: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('list'),
+      description: z.string().optional(),
+      data: z.array(z.string()),
+    }),
+    customerJourney: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('text'),
+      description: z.string().optional(),
+      data: z.string(),
+    }),
+    firstTenCustomers: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('text'),
+      description: z.string().optional(),
+      data: z.string(),
+    }),
+    firstHundredCustomers: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('text'),
+      description: z.string().optional(),
+      data: z.string(),
+    }),
+    growthStrategies: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('text'),
+      description: z.string().optional(),
+      data: z.string(),
+    })
+  })
+});
+
+export const BasePayloadSchema = z.object({ 
+  userId: z.string(),
+  orderId: z.string(),
+  deliverableId: z.string(),
+  deliverableName: z.string(),
+  agentId: z.string(),
+});
+
+export const RequestGrowthStrategyInputSchema = BasePayloadSchema.extend({
+    applicationIdea: z.string(),
+    idealCustomer: z.string(),
+    targetAnnualRevenue: z.number()
+});
+
+export const RequestGrowthStrategyOutputSchema = z.object({
+  strategy: z.string(),
+});
+
+export const DeliverableSchema = z.object({
+  deliverableContent: GrowthStrategySchema, 
+});
+
+export const DeliverableDTOSchema = BasePayloadSchema.extend({
+  deliverableContent: GrowthStrategySchema, 
+});
+
+export type RequestGrowthStrategyInput = z.infer<typeof RequestGrowthStrategyInputSchema>;
+export type RequestGrowthStrategyOutput = z.infer<typeof RequestGrowthStrategyOutputSchema>;
+export type Deliverable = z.infer<typeof DeliverableSchema>;
+export type DeliverableDTO = z.infer<typeof DeliverableDTOSchema>;
+```
+
+### 3. Update API Infrastructure
+
+First, set up the necessary infrastructure components for the Growth Strategist:
+
+```typescript
+// infra/queues.ts
+export const growthStrategyQueue = new sst.aws.Queue("GrowthStrategyQueue", {
+    fifo: true
+})   
+
+growthStrategyQueue.subscribe({
+    handler: "./packages/functions/src/agent-plane.api.growthStrategyHandler", 
+    link: [
+        deliverablesTable, 
+        ordersTable, 
+        openaiApiKey, 
+    ], 
+    permissions: [
+        {
+            actions: ["dynamodb:*"], 
+            resources: [deliverablesTable.arn, ordersTable.arn]
+        }
+    ],
+    timeout: "10 minutes"
+})
+```
+
+```typescript
+// infra/topic.ts
+orderTopic.subscribeQueue(
+  "growthStrategy", 
+  growthStrategyQueue.arn, 
+  {
+      filter: {
+          "queue": ["growthStrategy"]
+      }
+  }
+)
+```
+
+Then, add the Growth Strategist endpoint to your API infrastructure:
+
+```typescript
+// infra/api.ts
+api.route("POST /growth-strategy", {
+  link: [...apiResources],
+  handler: "./packages/functions/src/orchestrator.api.handleRequestGrowthStrategy",
+  timeout: "900 seconds"
+})
+```
+
+### 4. Update the Orchestrator
+
+The orchestrator layer handles incoming requests and manages the flow of data between the API and the agent plane. Here's the actual implementation:
+
+#### Primary Adapter
+
+```typescript
+// packages/core/src/orchestrator/adapters/primary/request-growth-strategy.adapter.ts
+import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
+import { ValidUser } from '@utils/metadata/saas-identity.schema';
+import { createError, handleError } from '@utils/tools/custom-error';
+import { SaaSIdentityVendingMachine } from '@utils/tools/saas-identity';
+import { HttpStatusCode } from '@utils/tools/http-status';
+import { RequestGrowthStrategyInputSchema } from "@orchestrator/metadata/agent-plane.schema"
+import { publishGrowthStrategyUseCase } from '@orchestrator/usecases/request-growth-strategy.usecase';
+import { OrchestratorHttpResponses } from '@orchestrator/metadata/http-responses.schema';
+import { randomUUID } from 'crypto';
+
+export const requestGrowthStrategyAdapter = async (
+  event: APIGatewayProxyEventV2
+): Promise<APIGatewayProxyResultV2> => {
+  try {
+    const svm = new SaaSIdentityVendingMachine();
+    const validUser: ValidUser = await svm.getValidUser(event);
+
+    if (!validUser.userId) {
+      throw createError(HttpStatusCode.BAD_REQUEST, "Missing user id");
+    }
+
+    if (!event.body) {
+      throw createError(HttpStatusCode.BAD_REQUEST, "Missing request body");
+    }
+   
+    const { applicationIdea, idealCustomer, targetAnnualRevenue, deliverableName, agentId } = JSON.parse(event.body);
+    
+    if (!applicationIdea || !idealCustomer || !targetAnnualRevenue) {
+      throw createError(HttpStatusCode.BAD_REQUEST, "Missing required fields");
+    }
+
+    const parsedInput = RequestGrowthStrategyInputSchema.parse({
+      userId: validUser.userId,
+      keyId: validUser.keyId,
+      orderId: randomUUID(),
+      deliverableId: randomUUID(),
+      agentId: agentId,
+      deliverableName: deliverableName,
+      applicationIdea: applicationIdea,
+      idealCustomer: idealCustomer,
+      targetAnnualRevenue: targetAnnualRevenue
+    });
+
+    const result = await publishGrowthStrategyUseCase(parsedInput);
+
+    return OrchestratorHttpResponses.GrowthStrategyRequestReceived({
+      body: result
+    });
+
+  } catch (error) {
+    return handleError(error);
+  }
+};
+```
+
+#### Use Case
+
+```typescript
+// packages/core/src/orchestrator/usecases/request-growth-strategy.usecase.ts
+import { Queue, Topic, GrowthStrategyOrder, Status } from 'src/orchestrator/metadata/order.schema'
+import { RequestGrowthStrategyInput } from '@orchestrator/metadata/agent-plane.schema'
+import { TopicPublisher } from '@orchestrator/adapters/secondary/topic-publisher.adapter';
+import { OrderResponseBody } from '../metadata/http-responses.schema';
+import { agentPlaneAdapter } from '../adapters/secondary/agent-plane.adapters';
+import { controlPlaneAdapter } from '../adapters/secondary/control-plane.adapter';
+import { AgentCost } from '../metadata/order.enum';
+
+export async function publishGrowthStrategyUseCase(request: RequestGrowthStrategyInput): Promise<OrderResponseBody> {
+  console.info("--- publishGrowthStrategyUseCase ---");
+  try {
+    const order: GrowthStrategyOrder = {
+      topic: Topic.orders,
+      queue: Queue.growthStrategy,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      payload: {
+        orderId: request.orderId,
+        userId: request.userId,
+        keyId: request.keyId,
+        deliverableId: request.deliverableId,
+        deliverableName: request.deliverableName,
+        agentId: request.agentId,
+        applicationIdea: request.applicationIdea,
+        idealCustomer: request.idealCustomer,
+        targetAnnualRevenue: request.targetAnnualRevenue
+      }
+    }
+
+    const publisher = new TopicPublisher();
+    await agentPlaneAdapter.saveOrder({
+      orderId: order.payload.orderId,
+      userId: order.payload.userId,
+      deliverableId: order.payload.deliverableId,
+      deliverableName: order.payload.deliverableName,
+      orderStatus: Status.Pending,
+      orderCreatedAt: order.createdAt,
+      orderUpdatedAt: order.updatedAt
+    });
+    await controlPlaneAdapter.updateRemainingCredits({
+      keyId: request.keyId,
+      credits: AgentCost.GrowthStrategy
+    });
+    await publisher.publishOrder(order);
+
+    return {
+      orderId: order.payload.orderId,
+      orderStatus: 'pending',
+      orderCreatedAt: new Date().toISOString(),
+      deliverableName: order.payload.deliverableName
+    }
+
+  } catch (error) {
+    console.error('Error in growthStrategyUseCase:', error);
+    throw new Error('Failed to publish growth strategy task');
+  }
+}
+```
+
+### 5. Implement Agent Plane Logic
+
+The Growth Strategist agent follows the AMU pattern for clean architecture and separation of concerns:
+
+#### Metadata Layer
+
+```typescript
+// packages/core/src/agent-plane/growth-strategist/metadata/growth-strategist.prompt.ts
+const growthStrategySystemPrompt = () => `You are an expert growth strategist. Your order is to create a detailed one-page growth strategy based on the provided application idea, ideal customer profile, and target annual revenue. Focus on actionable steps and realistic growth tactics.`;
+```
+
+#### Primary Adapter
+
+```typescript
+// packages/core/src/agent-plane/growth-strategist/adapters/primary/create-strategy.adapter.ts
+import { SQSEvent, SQSRecord } from 'aws-lambda';
+import { RequestGrowthStrategyInput, RequestGrowthStrategyInputSchema } from '@agent-plane/growth-strategist/metadata/growth-strategist.schema';
+import { createStrategyUsecase } from '@agent-plane/growth-strategist/usecases/create-strategy.usecase';
+
+export const createStrategyAdapter = async (event: SQSEvent) => {
+    console.info("--- Growth Strategy Queue Adapter ---");
+    if (!event.Records || event.Records.length === 0) {
+        throw new Error("Missing SQS Records");
+    }
+
+    const results = await Promise.all(event.Records.map(async (record: SQSRecord) => {
+        const message = JSON.parse(record.body);
+        const order = RequestGrowthStrategyInputSchema.parse(JSON.parse(message.Message));
+        return await createStrategyUsecase(order);
+    }));
+
+    return results;
+};
+```
+
+#### Use Case
+
+```typescript
+// packages/core/src/agent-plane/growth-strategist/usecases/create-strategy.usecase.ts
+import { RequestGrowthStrategyInput } from '@agent-plane/growth-strategist/metadata/growth-strategist.schema'
+import { runGrowthStrategy } from '@agent-plane/growth-strategist/adapters/secondary/openai.adapter';
+import { DeliverableDTO } from '@agent-plane/growth-strategist/metadata/growth-strategist.schema';
+import { deliverableRepository } from '@agent-plane/growth-strategist/adapters/secondary/datastore.adapter';
+import { Message } from '@utils/metadata/message.schema';
+
+export const createStrategyUsecase = async (input: RequestGrowthStrategyInput): Promise<Message> => {
+  console.info("Creating growth strategy for User");
+
+  try {
+    const content = await runGrowthStrategy(input);
+    const deliverable: DeliverableDTO = {
+      userId: input.userId,
+      orderId: input.orderId,
+      deliverableId: input.deliverableId,
+      deliverableName: input.deliverableName,
+      agentId: input.agentId,
+      ...content
+    };
+    await deliverableRepository.saveDeliverable(deliverable);
+    return {
+      message: 'Growth strategy created successfully',
+    };
+
+  } catch (error) {
+    console.error('Error generating growth strategy:', error);
+    throw new Error('Failed to generate growth strategy');
+  }
+};
+```
+
+#### Secondary Adapters
+
+```typescript
+// packages/core/src/agent-plane/growth-strategist/adapters/secondary/openai.adapter.ts
+import OpenAI from "openai";
+import { Deliverable, DeliverableSchema, RequestGrowthStrategyInput } from "@agent-plane/growth-strategist/metadata/growth-strategist.schema";
+import { zodResponseFormat } from "openai/helpers/zod";
+import { Resource } from "sst";
+import { withRetry } from "@utils/tools/retry";
+import { zodToJsonSchema } from "zod-to-json-schema";
+
+const client = new OpenAI({
+  apiKey: Resource.OpenAIApiKey.value
+});
+
+const growthStrategySystemPrompt = () => `You are an expert growth strategist. Your order is to create a detailed one-page growth strategy based on the provided application idea, ideal customer profile, and target annual revenue. Focus on actionable steps and realistic growth tactics.`;
+
+export const createGrowthStrategy = async (input: RequestGrowthStrategyInput): Promise<Deliverable> => {
+  try {
+    // Create an Assistant
+    const assistant = await client.beta.assistants.create({
+      name: "Growth Strategist",
+      instructions: growthStrategySystemPrompt(),
+      model: "gpt-4",
+      response_format: zodResponseFormat(DeliverableSchema, "deliverable"),
+      tools: [{ type: "function", function: {
+        name: "generateDeliverable",
+        parameters: zodToJsonSchema(DeliverableSchema)
+      }}]
+    });
+
+    // Create a Thread
+    const thread = await client.beta.threads.create();
+
+    // Add the user's message to the thread
+    await client.beta.threads.messages.create(thread.id, {
+      role: "user",
+      content: `Please create a growth strategy for:
+        Application Idea: ${input.applicationIdea}
+        Ideal Customer: ${input.idealCustomer}
+        Target Annual Revenue: $${input.targetAnnualRevenue}`
+    });
+
+    // Run the Assistant and wait for completion
+    const run = await client.beta.threads.runs.create(thread.id, {
+      assistant_id: assistant.id
+    });
+
+    // Wait for completion with proper status handling
+    const completedRun = await waitForRunCompletion(client, thread.id, run.id);
+
+    // Get the messages
+    const messages = await client.beta.threads.messages.list(thread.id);
+    const lastMessage = messages.data[0];
+
+    if (!lastMessage.content || lastMessage.content.length === 0) {
+      throw new Error("No content generated from OpenAI API");
+    }
+
+    // Check if the content is of type 'text'
+    const textContent = lastMessage.content.find(c => c.type === 'text');
+    if (!textContent) {
+      throw new Error("No text content found in the response");
+    }
+
+    // Parse and validate the response
+    const content = JSON.parse(textContent.text.value);
+    const validatedContent = await DeliverableSchema.parseAsync(content);
+    
+    // Cleanup
+    await client.beta.assistants.del(assistant.id);
+    await client.beta.threads.del(thread.id);
+    return validatedContent;
+  } catch (error) {
+    console.error('Error generating growth strategy:', error);
+    throw error;
+  }
+};
+
+// Helper function with proper status handling
+async function waitForRunCompletion(client: OpenAI, threadId: string, runId: string) {
+  while (true) {
+    const run = await client.beta.threads.runs.retrieve(threadId, runId);
+    
+    switch (run.status) {
+      case 'completed':
+        return run;
+      case 'failed':
+      case 'cancelled':
+      case 'expired':
+        throw new Error(`Run ended with status: ${run.status}`);
+      case 'requires_action':
+        // Handle function calls
+        if (run.required_action?.type === 'submit_tool_outputs') {
+          const toolCall = run.required_action.submit_tool_outputs.tool_calls[0];
+          const functionArgs = JSON.parse(toolCall.function.arguments);
+          
+          // Submit the tool outputs back to the run
+          await client.beta.threads.runs.submitToolOutputs(threadId, runId, {
+            tool_outputs: [{
+              tool_call_id: toolCall.id,
+              output: JSON.stringify(functionArgs)
+            }]
+          });
+        }
+        break;
+      default:
+        // For 'in_progress', 'queued', etc.
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+}
+
+export const runGrowthStrategy = withRetry(createGrowthStrategy, { 
+  retries: 3, 
+  delay: 1000, 
+  onRetry: (error: Error) => console.warn('Retrying growth strategy generation due to error:', error) 
+});
+```
+
+```typescript
+// packages/core/src/agent-plane/growth-strategist/adapters/secondary/deliverable.repository.ts
+import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { Deliverable, DeliverableDTO } from "@agent-plane/growth-strategist/metadata/growth-strategist.schema";
+import { Resource } from "sst";
+
+export interface IDeliverableRepository {
+  saveDeliverable(deliverable: DeliverableDTO): Promise<void>;
+  getDeliverables(userId: string): Promise<Deliverable[]>;
+}
+
+class DeliverableRepository implements IDeliverableRepository {
+  constructor(private dbClient: DynamoDBDocumentClient) {}
+
+  async saveDeliverable(deliverable: DeliverableDTO): Promise<void> {
+    console.info("--- Saving Deliverable ---");
+    try {
+      const params = {
+        TableName: Resource.Deliverables.tableName,
+        Item: deliverable
+      };
+      await this.dbClient.send(new PutCommand(params));
+    } catch (error) {
+      console.error("Error saving deliverable:", error);
+      throw new Error("Failed to save deliverable");
+    }
+  }
+
+  async getDeliverables(userId: string): Promise<Deliverable[]> {
+    console.info("Getting deliverables from database via DeliverableRepository");
+    try {
+      const params = {
+        TableName: Resource.Deliverables.tableName,
+        KeyConditionExpression: "userId = :userId",
+        ExpressionAttributeValues: {
+          ":userId": userId
+        }
+      };
+      const result = await this.dbClient.send(new QueryCommand(params));
+      return result.Items as Deliverable[];
+    } catch (error) {
+      console.error("Error getting deliverables:", error);
+      throw new Error("Failed to get deliverables");
+    }
+  }
+}
+
+export const createDeliverableRepository = (dbClient: DynamoDBDocumentClient): IDeliverableRepository => 
+        new DeliverableRepository(dbClient);
+```
+
+### 6. Testing
+
+The testing strategy is split into two levels: unit tests for the agent logic and API-level integration tests.
+
+#### Unit Testing
+
+```typescript
+// packages/core/tests/agent-tests/growth-strategist.agent.test.ts
+import { GrowthStrategySchema } from '@agent-plane/growth-strategist/metadata/growth-strategist.schema';
+import { runGrowthStrategy } from '@agent-plane/growth-strategist/adapters/secondary/openai.adapter';
+
+describe('Growth Strategist Agent', () => {
+  const testInput = {
+    applicationIdea: 'Team collaboration platform',
+    idealCustomer: 'Remote tech teams',
+    targetAnnualRevenue: 1000000
+  };
+
+  it('should generate a growth strategy', async () => {
+    const strategy = await runGrowthStrategy({
+      ...testInput,
+      userId: '123',
+      orderId: '123',
+      deliverableId: '123'
+    });
+    
+    // Verify the strategy structure matches the schema
+    expect(() => GrowthStrategySchema.parse(strategy.deliverableContent)).not.toThrow();
+
+    // Verify required sections
+    expect(strategy.deliverableContent.sections.distributionChannels).toBeDefined();
+    expect(strategy.deliverableContent.sections.customerJourney).toBeDefined();
+    expect(strategy.deliverableContent.sections.firstTenCustomers).toBeDefined();
+    expect(strategy.deliverableContent.sections.firstHundredCustomers).toBeDefined();
+    expect(strategy.deliverableContent.sections.growthStrategies).toBeDefined();
+  }, 100000);
+});
+```
+
+#### API Testing
+
+```typescript
+// packages/core/tests/api-tests/one-page-services.test.ts
+test('User should be able to request one-page growth strategy', async () => {
+  const testInput = {
+    deliverableName: "growth strategy test",
+    applicationIdea: 'Team collaboration platform',
+    idealCustomer: 'Remote tech teams',
+    targetAnnualRevenue: 1000000
+  };
+
+  const response = await fetch(`${API_URL}/growth-strategy`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(testInput),
+  });
+
+  expect(response.status).toBe(201);
+  const data = await response.json() as OrderResponseBody;
+  expect(data).toHaveProperty('orderId');
+});
+```
+
+To run the tests:
+
+1. Start the development environment:
+```bash
+# Start the dashboard
+cd agentic-dashboard-template
+yarn dev
+
+# Start the API in sandbox mode
+cd agentic-api-template
+yarn sst dev --stage sandbox
+```
+
+2. Run the tests:
+```bash
+cd agentic-api-template/packages/core
+
+# Run unit tests
+yarn test agent-tests/growth-strategist
+
+# Run API tests
+yarn test api-tests/one-page-services
+```
+
+The testing strategy ensures:
+- Unit tests verify the agent's core logic and output structure
+- API tests confirm the end-to-end request flow
+- Schema validation checks the output format
+- Authentication and authorization are properly tested
+- Error cases are handled appropriately
+
+Your Growth Strategist agent is now ready to help users create comprehensive growth strategies for their SaaS applications!
