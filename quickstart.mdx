@@ -5,8 +5,9 @@ description: 'Setting up your Sandbox Environment'
 
 
 Follow these steps to set up your sandbox Agentic Team OS environment. 
-Having a sandbox environment is a great way to test out Agentic Team OS without having to worry about breaking things. 
-The templates come with example agents. You can use these to test out the system.
+Having a sandbox environment is a great way to test your ideas without having to worry about breaking things. 
+
+The templates come with example agents you can use as a baseline for your own agents.
 
 ## What prerequisites do you need? 
 
@@ -14,15 +15,20 @@ The templates come with example agents. You can use these to test out the system
 - Node.js 20+
 - Package Manager (Yarn, NPM, PNPM, etc)
 - Dedicated Sandbox AWS Account with AWS SSO
+- Stripe Account 
+- Clerk Account 
+- Unkey Account 
+- Cloudflare Account
 
-Based on your experience level this process may take you anywhere from  20 mins to a few hours. 
+
+Time to Complete: 30 mins - 2 hrs
+
 
 <Note>
-  Using Agentic Team OS requires a basic understanding of AWS, SST, Typescript, and Cloud Development. 
-  If you need help getting started or have questions, join the [Community](https://www.skool.com/agent-toolkit) where you can get more access to technical courses to get you up to speed and ask questions.
+  Using Agentic Team OS requires an intermediate level of experience with programming and cloud development. 
+  If you need help getting started or have questions, join the [Community](https://www.skool.com/agent-toolkit) where you can get more access to more support and resources to get you up to speed.
 </Note>
 
-## How to get started?
 
 ## 1. Create a new project directory
 
@@ -32,10 +38,6 @@ cd my-agentic-project
 ```
 
 ## 2. Clone the template repositories:
-```bash
-# Clone Landing Page Template
-gh repo clone tfcbot/agentic-landing-page-template
-```
 
 ```bash
 # Clone Dashboard Template
@@ -50,27 +52,7 @@ Go with cloning over forking because you should be making your own significant c
 
 Future updates will then not break any custom changes you make. 
 
-
-<Note>
-  If you find these templates helpful, please consider giving them a star on GitHub! Your support helps us continue improving Agentic Team OS.
-  
-  - [Landing Page Template ⭐](https://github.com/tfcbot/agentic-landing-page-template)
-  - [Dashboard Template ⭐](https://github.com/tfcbot/agentic-dashboard-template) 
-  - [API Template ⭐](https://github.com/tfcbot/agentic-api-template)
-</Note>
-
-
-## 3. Configure Your Templates
-
-Each template requires a set of environment variables that you need to configure. 
-
-For now you just need to set up the dashboard and api to try out the example agents. 
-
-To get your sandbox environment running your will need to set up a `.env.sandbox` file in each template.
-
-You will also need to set up webhooks for Stripe and Clerk to send events to your API.
-
-Lets start with the environment variables. 
+In each repo create a `.env.sandbox` file and add the following variables:
 
 ### Dashboard
 ```bash
@@ -110,29 +92,85 @@ CLOUDFLARE_API_TOKEN=<your-cloudflare-api-token>
 BASE_DOMAIN=<your-base-domain>
 ```
 
-Next you will need to load your secrets into AWS into the sandbox stage. For example to load your secrets for the api 
+
+<Note>
+  If you find these templates helpful, please consider giving them a star on GitHub!
+  - [Landing Page Template ⭐](https://github.com/tfcbot/agentic-landing-page-template)
+  - [Dashboard Template ⭐](https://github.com/tfcbot/agentic-dashboard-template) 
+  - [API Template ⭐](https://github.com/tfcbot/agentic-api-template)
+</Note>
+
+
+## 2. Configure Your Webhooks
+
+You will need to set up two webhooks to enable the billing system to work. 
+
+### Stripe
+
+The endpoint is already preconfigured in the API template as `/checkout`. 
+
+Create a webhook for the `checkout-session.completed` event using the url `https://sandbox-api.yourdomain.com/checkout/v1`. 
+
+
+Next, update your `.env.sandbox` file with the correct values for stripe.
+
+
+### Clerk
+
+In clerk you will need to create a webhook for the `user.created` event. 
+
+The endpoint is already preconfigured in the API template as `/signup-webhook`.
+
+Create a webhook for the `user.created` event using the url `https://sandbox-api.yourdomain.com/signup-webhook`.
+
+Once complete, you will need to update `.env.sandbox` with the correct values for clerk and stripe. 
+
+For more step-by-step instructions on setting up your webhooks, head over to the [Setup Webhooks](/guides/setup-webhooks) guide.
+
+## 3. Set up API Credits
+
+### Unkey
+
+The billing system also needs Unkey to be set up. 
+
+With Unkey you can dictate the number of credits you want to give to your users after they make a purchase and any other API limits you want to set.
+
+You will need to create a new API with unkey. 
+
+Then update your `.env.sandbox` file with the root key and api id.
+
+```bash
+UnkeyRootKey=<your-unkey-root-key>
+UnkeyApiId=<your-unkey-api-id>
+```
+
+For more details on how to set up Unkey, head over to the [Unkey Docs](https://www.unkey.com/docs/quickstart/onboarding/onboarding-api).
+
+
+### 4. Setup your custom domain
+
+Cloudflare is used to manage your DNS and SSL certificates. It also provides security protections for you web app and API.
+
+To set up your custom domain, head over to the [Cloudflare Guide](/guides/add-custom-domain).
+
+<Note>
+  If you don't have a custom domain the template will fail to deploy. 
+</Note>
+
+Once you have your custom domain set up, you will need to update the `BASE_DOMAIN` variable in the `.env.sandbox` file in the API template.
+
+## 5. Load Your Secrets
+
+Next you will need to load your secrets into AWS into the sandbox stage. 
+
+For example to load your secrets for the api: 
 
 ```bash
 cd api
 sst secrets load .env.sandbox --stage sandbox
 ```
 
-Next you will need to set up webhooks for [Stripe](/integrations/stripe) and [Clerk](/integrations/clerk) to send events to your API. 
-
-For more step-by-step instructions by template, head over to the [Templates](/templates) page. 
-
-## 4. Load your Secrets into AWS 
-
-Once you have your environment variables configured, you need to load them into AWS. 
-
-SST is used to manage your secrets in AWS. Before deploying into an Envrionment you need to load your secrets via the CMD line. 
-
-This will encrypt your secrets in a S3 bucket and make them available to resources in your stage. 
-
-```bash
-sst secrets load .env.sst.sandbox --stage sandbox
-```
-
+Do this for the both the API and Dashboard templates.
 
 ## 5. Start your sandbox environment
 

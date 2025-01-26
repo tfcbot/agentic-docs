@@ -1,8 +1,740 @@
 ---
-title: 'Tech Strategist'
-description: 'Transform your value proposition into a technical architecture'
+title: 'Technical Strategist'
+description: 'Design a comprehensive technical architecture and implementation strategy'
 ---
 
-The Tech Strategist agent helps you translate your value proposition into a comprehensive technical architecture and implementation strategy.
+The Technical Strategist agent helps you create a comprehensive technical architecture and implementation strategy based on your application requirements and technical constraints.
 
-(Guide Comming Soon)
+### 1. Create Agent Configuration
+
+First, create the Technical Strategist configuration in your dashboard project:
+
+```typescript
+// src/lib/agents/techStrategist.agent.ts
+import type { AgentConfig, OrderFormData, RequestTechStrategyInput } from '@/schemas';
+import { agentService } from '@/services/agentService';
+
+export const techStrategistAgent: AgentConfig = {
+    id: '4f9e3b9a-7d1c-5f5e-9c7d-9b2a4e3d2f0d',
+    name: 'Technical Strategist',
+    title: 'Technical Architect',
+    description: 'An expert in technical architecture and system design',
+    category: 'architecture',
+    imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&q=80&auto=format',
+    credits: 25,
+    available: true,
+    keyDeliverables: [
+        'Use Cases Analysis',
+        'Non-Functional Requirements',
+        'Data Model (ERD)',
+        'Domain Model',
+        'Services Design',
+        'API Design',
+        'Deployment Strategy'
+    ],
+    packageDescription: [
+        'One Page Technical Architecture'
+    ],
+    estimatedDelivery: 'Less than 1 min',
+    fields: {
+        deliverableName: {
+            type: 'text',
+            label: 'Deliverable Name',
+            required: true,
+            placeholder: 'Enter in your deliverable name'
+        },
+        useCases: {
+            type: 'textarea',
+            label: 'Use Cases',
+            required: true,
+            placeholder: 'Enter your application use cases'
+        },
+        nonFunctional: {
+            type: 'textarea',
+            label: 'Non-Functional Requirements',
+            required: true,
+            placeholder: 'Enter your non-functional requirements'
+        }
+    },
+    faq: [
+        {
+            question: 'What is the purpose of this agent?',
+            answer: 'This agent helps you design a comprehensive technical architecture for your application. It analyzes your requirements and provides detailed diagrams and specifications for implementation.'
+        }
+    ],
+    deliverable: {
+        sections: [
+            {
+                id: 'useCases',
+                label: 'Use Cases',
+                type: 'list',
+                description: 'Key use cases and features',
+                order: 1
+            },
+            {
+                id: 'nonFunctional',
+                label: 'Non-Functional Requirements',
+                type: 'list',
+                description: 'Non-functional requirements and constraints',
+                order: 2
+            },
+            {
+                id: 'dataModel',
+                label: 'Data Model',
+                type: 'diagram',
+                description: 'Entity-Relationship Diagram',
+                order: 3
+            },
+            {
+                id: 'domainModel',
+                label: 'Domain Model',
+                type: 'diagram',
+                description: 'Domain class diagram',
+                order: 4
+            },
+            {
+                id: 'servicesDesign',
+                label: 'Services Design',
+                type: 'diagram',
+                description: 'Microservices architecture diagram',
+                order: 5
+            },
+            {
+                id: 'apiDesign',
+                label: 'API Design',
+                type: 'text',
+                description: 'OpenAPI specification',
+                order: 6
+            },
+            {
+                id: 'deployment',
+                label: 'Deployment',
+                type: 'text',
+                description: 'Deployment strategy and infrastructure',
+                order: 7
+            }
+        ],
+        availableFormats: ['pdf', 'markdown'],
+    },
+    handler: async (token: string, data: OrderFormData) => {
+        const response = await agentService.handleTechStrategyRequest(
+            token,
+            data.payload.formData as RequestTechStrategyInput
+        );
+        return response;
+    }
+};
+```
+
+### 2. Define Schemas
+
+Add the Technical Strategist types in your schemas:
+
+```typescript
+// packages/core/src/agent-plane/technical-strategist/metadata/technical-architect.schema.ts
+import { z } from 'zod';
+
+// Simple validator that checks for basic mermaid syntax
+const validateMermaid = (value: string): boolean => {
+  // Check if string starts with a valid mermaid diagram type
+  const validDiagramTypes = [
+    'erDiagram',
+    'classDiagram',
+    'sequenceDiagram',
+    'flowchart',
+    'graph'
+  ];
+  
+  const firstLine = value.trim().split('\n')[0].trim();
+  return validDiagramTypes.some(type => firstLine.startsWith(type));
+};
+
+export const TechStrategySchema = z.object({
+  sections: z.object({
+    useCases: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('list'),
+      description: z.string().optional(),
+      data: z.array(z.string()),
+    }),
+    nonFunctional: z.object({
+      id: z.string(), 
+      label: z.string(),
+      type: z.literal('list'),
+      description: z.string().optional(),
+      data: z.array(z.string()),
+    }),
+    dataModel: z.object({
+      id: z.string(),
+      label: z.string(), 
+      type: z.literal('diagram'),
+      description: z.string().optional(),
+      data: z.string().refine(
+        (val) => validateMermaid(val),
+        { message: "Invalid Mermaid ERD diagram" }
+      ),
+    }),
+    domainModel: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('diagram'),
+      description: z.string().optional(),
+      data: z.string().refine(
+        (val) => validateMermaid(val),
+        { message: "Invalid Mermaid class diagram" }
+      ),
+    }),
+    servicesDesign: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('diagram'),
+      description: z.string().optional(),
+      data: z.string().refine(
+        (val) => validateMermaid(val),
+        { message: "Invalid Mermaid service diagram" }
+      ),
+    }),
+    apiDesign: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('text'),
+      description: z.string().optional(),
+      data: z.string(),
+    }),
+    deployment: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('text'),
+      description: z.string().optional(),
+      data: z.string(),
+    })
+  })
+});
+
+export const BasePayloadSchema = z.object({
+  userId: z.string(),
+  orderId: z.string(),
+  deliverableId: z.string(),
+  deliverableName: z.string(),
+  agentId: z.string(),
+});
+
+export const RequestTechStrategyInputSchema = BasePayloadSchema.extend({
+  useCases: z.string(),
+  nonFunctional: z.string(),
+});
+
+export const RequestTechStrategyOutputSchema = z.object({
+  spec: z.string(),
+});
+
+export const DeliverableSchema = z.object({
+  deliverableContent: TechStrategySchema,
+});
+
+export const DeliverableDTOSchema = BasePayloadSchema.extend({
+  deliverableContent: TechStrategySchema,
+});
+
+export type RequestTechStrategyInput = z.infer<typeof RequestTechStrategyInputSchema>;
+export type RequestTechStrategyOutput = z.infer<typeof RequestTechStrategyOutputSchema>;
+export type Deliverable = z.infer<typeof DeliverableSchema>;
+export type DeliverableDTO = z.infer<typeof DeliverableDTOSchema>;
+```
+
+### 3. Update API Infrastructure
+
+First, set up the necessary infrastructure components for the Technical Strategist:
+
+```typescript
+// infra/queues.ts
+export const techStrategyQueue = new sst.aws.Queue("TechStrategyQueue", {
+    fifo: true
+})   
+
+techStrategyQueue.subscribe({
+    handler: "./packages/functions/src/agent-plane.api.techStrategyHandler", 
+    link: [
+        deliverablesTable, 
+        ordersTable, 
+        openaiApiKey, 
+    ], 
+    permissions: [
+        {
+            actions: ["dynamodb:*"], 
+            resources: [deliverablesTable.arn, ordersTable.arn]
+        }
+    ],
+    timeout: "10 minutes"
+})
+```
+
+```typescript
+// infra/topic.ts
+orderTopic.subscribeQueue(
+  "techStrategy", 
+  techStrategyQueue.arn, 
+  {
+      filter: {
+          "queue": ["techStrategy"]
+      }
+  }
+)
+```
+
+Then, add the Technical Strategist endpoint to your API infrastructure:
+
+```typescript
+// infra/api.ts
+api.route("POST /tech-strategy", {
+  link: [...apiResources],
+  handler: "./packages/functions/src/orchestrator.api.handleRequestTechStrategy",
+  timeout: "900 seconds"
+})
+```
+
+### 4. Update the Orchestrator
+
+The orchestrator layer handles incoming requests and manages the flow of data between the API and the agent plane. Here's the actual implementation:
+
+#### Primary Adapter
+
+```typescript
+// packages/core/src/orchestrator/adapters/primary/request-tech-strategy.adapter.ts
+import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
+import { ValidUser } from '@utils/metadata/saas-identity.schema';
+import { createError, handleError } from '@utils/tools/custom-error';
+import { SaaSIdentityVendingMachine } from '@utils/tools/saas-identity';
+import { HttpStatusCode } from '@utils/tools/http-status';
+import { RequestTechStrategyInputSchema } from "@orchestrator/metadata/agent-plane.schema"
+import { publishTechStrategyUseCase } from '@orchestrator/usecases/request-tech-strategy.usecase'
+import { OrchestratorHttpResponses } from '@orchestrator/metadata/http-responses.schema';
+import { randomUUID } from 'crypto';
+
+export const requestTechStrategyAdapter = async (
+  event: APIGatewayProxyEventV2
+): Promise<APIGatewayProxyResultV2> => {
+  try {
+    const svm = new SaaSIdentityVendingMachine();
+    const validUser: ValidUser = await svm.getValidUser(event);
+
+    if (!validUser.userId) {
+      throw createError(HttpStatusCode.BAD_REQUEST, "Missing user id");
+    }
+
+    if (!event.body) {
+      throw createError(HttpStatusCode.BAD_REQUEST, "Missing request body");
+    }
+   
+    const { useCases, nonFunctional, deliverableName, agentId } = JSON.parse(event.body);
+    
+    if (!useCases || !nonFunctional) {
+      throw createError(HttpStatusCode.BAD_REQUEST, "Missing required fields");
+    }
+
+    const parsedInput = RequestTechStrategyInputSchema.parse({
+      userId: validUser.userId,
+      keyId: validUser.keyId,
+      orderId: randomUUID(),
+      deliverableId: randomUUID(),
+      useCases: useCases,
+      nonFunctional: nonFunctional,
+      deliverableName: deliverableName,
+      agentId: agentId
+    });
+
+    const result = await publishTechStrategyUseCase(parsedInput);
+
+    return OrchestratorHttpResponses.TechStrategyRequestReceived({
+      body: result
+    });
+
+  } catch (error) {
+    return handleError(error);
+  }
+};
+```
+
+#### Use Case
+
+```typescript
+// packages/core/src/orchestrator/usecases/request-tech-strategy.usecase.ts
+import { Queue, Topic, TechStrategyOrder, Status } from '@orchestrator/metadata/order.schema'
+import { RequestTechStrategyInput } from '@orchestrator/metadata/agent-plane.schema'
+import { TopicPublisher } from '@orchestrator/adapters/secondary/topic-publisher.adapter';
+import { OrderResponseBody } from '@orchestrator/metadata/http-responses.schema';
+import { agentPlaneAdapter } from '@orchestrator/adapters/secondary/agent-plane.adapters';
+import { updateCreditsAdapter } from 'src/control-plane/billing/adapters/primary/update-remaining-credits.adater';
+import { AgentCost } from '../metadata/order.enum';
+
+export async function publishTechStrategyUseCase(request: RequestTechStrategyInput): Promise<OrderResponseBody> {
+  try {   
+    const order: TechStrategyOrder = {
+      topic: Topic.orders,
+      queue: Queue.techStrategy,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      payload: {
+        orderId: request.orderId,
+        keyId: request.keyId,
+        userId: request.userId,
+        deliverableId: request.deliverableId,
+        deliverableName: request.deliverableName,
+        agentId: request.agentId,
+        useCases: request.useCases,
+        nonFunctional: request.nonFunctional
+      }
+    }
+
+    const publisher = new TopicPublisher();
+    await agentPlaneAdapter.saveOrder(
+      {
+        orderId: order.payload.orderId,
+        userId: order.payload.userId,
+        deliverableId: order.payload.deliverableId,
+        deliverableName: order.payload.deliverableName,
+        orderStatus: Status.Pending,
+        orderCreatedAt: order.createdAt,
+        orderUpdatedAt: order.updatedAt
+      }
+    );
+    await updateCreditsAdapter.updateRemainingCredits({
+      keyId: request.keyId,
+      credits: AgentCost.TechStrategy
+    });
+    await publisher.publishOrder(order);
+
+    return {
+      orderId: order.payload.orderId,
+      orderStatus: 'pending',
+      orderCreatedAt: new Date().toISOString(),
+      deliverableName: order.payload.deliverableName
+    }
+
+  } catch (error) {
+    console.error('Error in techStrategyUseCase:', error);
+    throw new Error('Failed to publish tech strategy task');
+  }
+}
+```
+
+### 5. Implement Agent Plane Logic
+
+The Technical Strategist agent follows the AMU pattern for clean architecture and separation of concerns:
+
+#### Metadata Layer
+
+```typescript
+// packages/core/src/agent-plane/technical-strategist/metadata/technical-strategist.prompt.ts
+export const techStrategySystemPrompt = (input: RequestTechStrategyInput) => `
+You are an expert technical architect.
+Your order is to create a detailed one-page technical specification based on the provided application requirements, technical constraints, and scalability needs For the following input:
+You do not need to inlcude User Authentication, Authorization, or any other security related fields.
+Focus on the business logic and data model and features. 
+Use Event Driven Architecture and Microservices design principles.
+Use Hexagonal Architecture.
+Leverage AWS services and features.
+INclude Topics, Queues, and Event Bus as needed.
+${JSON.stringify(input)}
+Focus on architecture decisions and implementation recommendations.
+   For the dataModel field, you MUST generate a valid Mermaid.js ERD diagram.
+         Use this format:
+         erDiagram
+             EntityA ||--o{ EntityB : relationship
+             EntityA {
+                 string id
+                 string name
+             }
+             EntityB {
+                 string id
+                 string description
+             }
+         
+         Ensure all relationships use proper Mermaid.js ERD notation: ||--o{, }|--|{, etc.
+   For domainModel field, you MUST generate a valid Mermaid.js class diagram.
+         Use this format:
+         classDiagram
+             class EntityA {
+                 string id
+                 string name
+             }
+             class EntityB {
+                 string id
+                 string description
+             }
+   For servicesDesign field, you MUST generate a valid Mermaid.js diagram that shows the high level services and their relationships
+   using microservices design principles.
+   For API Design, you MUST generate a valid OpenAPI 3.1.0 specification.
+`;
+```
+
+#### Primary Adapter
+
+```typescript
+// packages/core/src/agent-plane/technical-strategist/adapters/primary/create-tech-strategy.adapter.ts
+import { SQSEvent, SQSRecord } from 'aws-lambda';
+import { RequestTechStrategyInputSchema } from '@agent-plane/technical-strategist/metadata/technical-architect.schema';
+import { createTechStrategyUsecase } from '@agent-plane/technical-strategist/usecases/create-tech-strategy.usecase';
+
+export const createTechStrategyAdapter = async (event: SQSEvent) => {
+    console.info("--- Tech Strategy Queue Adapter ---");
+    if (!event.Records || event.Records.length === 0) {
+        throw new Error("Missing SQS Records");
+    }
+
+    const results = await Promise.all(event.Records.map(async (record: SQSRecord) => {
+        const message = JSON.parse(record.body);
+        const order = RequestTechStrategyInputSchema.parse(JSON.parse(message.Message));
+        return await createTechStrategyUsecase(order);
+    }));
+
+    return results;
+};
+```
+
+#### Use Case
+
+```typescript
+// packages/core/src/agent-plane/technical-strategist/usecases/create-tech-strategy.usecase.ts
+import { Deliverable, DeliverableDTO, RequestTechStrategyInput } from '@agent-plane/technical-strategist/metadata/technical-architect.schema'
+import { runTechStrategy } from '@agent-plane/technical-strategist/adapters/secondary/openai.adapter';
+import { deliverableRepository } from '@agent-plane/technical-strategist/adapters/secondary/datastore.adapter';
+import { Message } from '@utils/metadata/message.schema';
+
+export const createTechStrategyUsecase = async (input: RequestTechStrategyInput): Promise<Message> => {
+  console.info("--- Creating Technical Strategy via Usecase ---");
+
+  try {
+    const result = await runTechStrategy(input);
+    const deliverable: DeliverableDTO = {
+      userId: input.userId,
+      orderId: input.orderId,
+      deliverableId: input.deliverableId,
+      deliverableName: input.deliverableName,
+      agentId: input.agentId,
+      ...result
+    };
+    await deliverableRepository.saveDeliverable(deliverable);
+
+    return {
+      message: "Technical strategy created successfully"
+    };
+
+  } catch (error) {
+    console.error('Error generating technical strategy:', error);
+    throw new Error('Failed to generate technical strategy');
+  }
+};
+```
+
+#### Secondary Adapters
+
+```typescript
+// packages/core/src/agent-plane/technical-strategist/adapters/secondary/openai.adapter.ts
+import OpenAI from "openai";
+import { Deliverable, DeliverableSchema, RequestTechStrategyInput } from "@agent-plane/technical-strategist/metadata/technical-architect.schema";
+import { Resource } from "sst";
+import { withRetry } from "@utils/tools/retry";
+import { techStrategySystemPrompt } from "../../metadata/technical-strategist.prompt";
+import { zodToJsonSchema } from "zod-to-json-schema";
+import { zodResponseFormat } from "openai/helpers/zod";
+
+const client = new OpenAI({
+  apiKey: Resource.OpenAIApiKey.value
+});
+
+export const createTechStrategy = async (input: RequestTechStrategyInput): Promise<Deliverable> => {
+  console.info("--- Creating Technical Strategy via Agent ---");
+  try {
+    // Create an Assistant
+    const assistant = await client.beta.assistants.create({
+      name: "Technical Strategist",
+      instructions: techStrategySystemPrompt(input),
+      model: "gpt-4",
+      response_format: zodResponseFormat(DeliverableSchema, "deliverable"),
+      tools: [{ type: "function", function: {
+        name: "generateDeliverable",
+        parameters: zodToJsonSchema(DeliverableSchema)
+      }}]
+    });
+
+    // Create a Thread
+    const thread = await client.beta.threads.create();
+
+    // Run the Assistant and wait for completion
+    const run = await client.beta.threads.runs.create(thread.id, {
+      assistant_id: assistant.id
+    });
+
+    // Wait for completion with proper status handling
+    const completedRun = await waitForRunCompletion(client, thread.id, run.id);
+    
+    // Get the messages (only after run is completed)
+    const messages = await client.beta.threads.messages.list(thread.id);
+    const lastMessage = messages.data[0];
+
+    if (!lastMessage.content || lastMessage.content.length === 0) {
+      throw new Error("No content generated from OpenAI API");
+    }
+
+    // Check if the content is of type 'text'
+    const textContent = lastMessage.content.find(c => c.type === 'text');
+    if (!textContent) {
+      throw new Error("No text content found in the response");
+    }
+    // Parse and validate the response
+    const content = JSON.parse(textContent.text.value);
+
+    const validatedContent = await DeliverableSchema.parseAsync(content);
+    
+    // Cleanup
+    console.info("--- Cleaning Up Agent Instance ---");
+    await client.beta.assistants.del(assistant.id);
+    await client.beta.threads.del(thread.id);
+
+    return validatedContent;
+  } catch (error) {
+    console.error('Error generating technical strategy:', error);
+    throw error;
+  }
+};
+
+// Helper function with proper status handling
+async function waitForRunCompletion(client: OpenAI, threadId: string, runId: string) {
+  while (true) {
+    const run = await client.beta.threads.runs.retrieve(threadId, runId);
+    
+    switch (run.status) {
+      case 'completed':
+        return run;
+      case 'failed':
+      case 'cancelled':
+      case 'expired':
+        throw new Error(`Run ended with status: ${run.status}`);
+      case 'requires_action':
+        // Handle function calls
+        if (run.required_action?.type === 'submit_tool_outputs') {
+          const toolCall = run.required_action.submit_tool_outputs.tool_calls[0];
+          const functionArgs = JSON.parse(toolCall.function.arguments);
+          
+          // Submit the tool outputs back to the run
+          await client.beta.threads.runs.submitToolOutputs(threadId, runId, {
+            tool_outputs: [{
+              tool_call_id: toolCall.id,
+              output: JSON.stringify(functionArgs)
+            }]
+          });
+        }
+        break;
+      default:
+        // For 'in_progress', 'queued', etc.
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+}
+
+export const runTechStrategy = withRetry(createTechStrategy, {
+  retries: 3,
+  delay: 1000,
+  onRetry: (error: Error) => console.warn('Retrying tech strategy generation due to error:', error)
+});
+```
+
+### 6. Testing
+
+The testing strategy is split into two levels: unit tests for the agent logic and API-level integration tests.
+
+#### Unit Testing
+
+```typescript
+// packages/core/tests/agent-tests/technical-strategist.agent.test.ts
+import { DeliverableSchema } from '@agent-plane/technical-strategist/metadata/technical-architect.schema';
+import { runTechStrategy } from '@agent-plane/technical-strategist/adapters/secondary/openai.adapter';
+
+describe('Technical Strategist Agent', () => {
+  const testInput = {
+    useCases: 'User can create, read, update, and delete items',
+    nonFunctional: 'System should handle 1000 requests per second'
+  };
+
+  it('should generate a technical strategy', async () => {
+    const strategy = await runTechStrategy({
+      ...testInput,
+      userId: '123',
+      orderId: '123',
+      deliverableId: '123',
+      deliverableName: 'test',
+      agentId: '123'
+    });
+    
+    // Verify the strategy structure matches the schema
+    expect(() => DeliverableSchema.parse(strategy)).not.toThrow();
+
+    // Verify required sections
+    expect(strategy.deliverableContent.sections.useCases).toBeDefined();
+    expect(strategy.deliverableContent.sections.nonFunctional).toBeDefined();
+    expect(strategy.deliverableContent.sections.dataModel).toBeDefined();
+    expect(strategy.deliverableContent.sections.domainModel).toBeDefined();
+    expect(strategy.deliverableContent.sections.servicesDesign).toBeDefined();
+    expect(strategy.deliverableContent.sections.apiDesign).toBeDefined();
+    expect(strategy.deliverableContent.sections.deployment).toBeDefined();
+  }, 100000);
+});
+```
+
+#### API Testing
+
+```typescript
+// packages/core/tests/api-tests/one-page-services.test.ts
+test('User should be able to request one-page technical strategy', async () => {
+  const testInput = {
+    deliverableName: "tech strategy test",
+    useCases: 'User can create, read, update, and delete items',
+    nonFunctional: 'System should handle 1000 requests per second'
+  };
+
+  const response = await fetch(`${API_URL}/tech-strategy`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(testInput),
+  });
+
+  expect(response.status).toBe(201);
+  const data = await response.json() as OrderResponseBody;
+  expect(data).toHaveProperty('orderId');
+});
+```
+
+To run the tests:
+
+1. Start the development environment:
+```bash
+# Start the dashboard
+cd agentic-dashboard-template
+yarn dev
+
+# Start the API in sandbox mode
+cd agentic-api-template
+yarn sst dev --stage sandbox
+```
+
+2. Run the tests:
+```bash
+cd agentic-api-template/packages/core
+
+# Run unit tests
+yarn test agent-tests/technical-strategist
+
+# Run API tests
+yarn test api-tests/one-page-services
+```
+
+The testing strategy ensures:
+- Unit tests verify the agent's core logic and output structure
+- API tests confirm the end-to-end request flow
+- Schema validation checks the output format
+- Authentication and authorization are properly tested
+- Error cases are handled appropriately
+
+Your Technical Strategist agent is now ready to help users design comprehensive technical architectures for their applications!

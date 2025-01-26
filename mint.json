@@ -50,18 +50,14 @@
     {
       "group": "Guides",
       "pages": [
-        "guides/adding-agents",
-        "guides/automate-deployments",
-        "guides/add-your-custom-domain",
         "guides/setup-webhooks",
-        "guides/setup-auth",
-        "guides/customize-onboarding",
-        "guides/customize-user-billing",
-        "guides/coding-with-ai"
+        "guides/add-your-custom-domain",
+        "guides/automate-deployments",
+        "guides/adding-agents"
       ]
     },
     {
-      "group": "Agents",
+      "group": "Example Agents",
       "pages": [
         "examples/value-strategist",
         "examples/tech-strategist",
