@@ -5,225 +5,195 @@ description: 'Guide to adding new AI agents to your application'
 
 This guide walks you through the process of adding new AI agents to your Agentic Templates application.
 
-## Overview
+## Implementation Guide
 
-There are two main parts to adding a new agent:
-1. Creating the static agent configuration
-2. Implementing API endpoints
+Follow these steps to implement a new agent in your application.
 
-# Creating the Static Agent Configuration
+### 1. Create Agent Configuration
 
-## 1. Configuring the Agent
-
-
-First, create your agent configuration in the `lib/agents` directory:
-
-This leverages the `AgentConfig` type from the `@/schemas/agent` package. It will wire up the agent to the UI and perform the following 
-- Create a new Agent Card 
-- Dynamically generate the intake form for the agent 
-- Fill in the agent details in the dashboard
+First, create your agent configuration in your dashboard project:
 
 ```typescript
-// lib/agents/your-agent.ts
-import { AgentConfig } from '@/schemas/agent';
+// src/lib/agents/your-agent.ts
+import type { AgentConfig, OrderFormData, RequestAgentInput } from '@/schemas';
+import { agentService } from '@/services/agentService';
 
-export const yourAgent = {
-  id: 'your-agent-id', // Must be a valid UUID
-  name: 'Your Agent Name',
-  title: 'Your Agent Title', 
-  description: 'Detailed description of what your agent does',
-  category: 'your-category', // Required category field
-  imageUrl: '/agents/your-agent.png',
-  credits: 25,
-  available: true,
-  keyDeliverables: [
-    'Key deliverable 1',
-    'Key deliverable 2', 
-    'Key deliverable 3'
-  ],
-  rating: 5, // Optional rating
-  longDescription: 'Optional longer description', // Optional
-  additionalInfo: 'Optional additional info', // Optional
-  fields: {
-    // Required form fields configuration
-    'field1': {
-      type: 'text',
-      label: 'Field 1',
-      required: true
+export const yourAgent: AgentConfig = {
+    id: 'unique-uuid-for-your-agent',
+    name: 'Your Agent Name',
+    title: 'Your Agent Title',
+    description: 'Description of what your agent does',
+    category: 'your-category',
+    imageUrl: 'https://your-image-url.com',
+    credits: 20,
+    available: true,
+    keyDeliverables: [
+        'Key deliverable 1',
+        'Key deliverable 2',
+        'Key deliverable 3'
+    ],
+    packageDescription: [
+        'One Page Deliverable'
+    ],
+    estimatedDelivery: 'Less than 1 min',
+    fields: {
+        deliverableName: {
+            type: 'text',
+            label: 'Deliverable Name',
+            required: true,
+            placeholder: 'Enter your deliverable name'
+        },
+        // Add your custom fields here
+        field1: {
+            type: 'text',
+            label: 'Field 1',
+            required: true,
+            placeholder: 'Enter field 1'
+        },
+        field2: {
+            type: 'textarea',
+            label: 'Field 2',
+            required: true,
+            placeholder: 'Enter field 2'
+        }
+    },
+    faq: [
+        {
+            question: 'What is the purpose of this agent?',
+            answer: 'Explain what your agent does and how it helps users.'
+        }
+    ],
+    deliverable: {
+        sections: [
+            {
+                id: 'section1',
+                label: 'Section 1',
+                type: 'text',
+                description: 'Description of section 1',
+                order: 1
+            },
+            {
+                id: 'section2',
+                label: 'Section 2',
+                type: 'list',
+                description: 'Description of section 2',
+                order: 2
+            }
+        ],
+        availableFormats: ['pdf', 'markdown'],
+    },
+    handler: async (token: string, data: OrderFormData) => {
+        const response = await agentService.handleAgentRequest(
+            token,
+            data.payload.formData as RequestAgentInput
+        );
+        return response;
     }
-  },
-  packageDescription: [
-    'Feature 1 of your agent',
-    'Feature 2 of your agent',
-    'Feature 3 of your agent'
-  ],
-  estimatedDelivery: '24-48 hours',
-  faq: [
-    {
-      question: 'Common question about your agent?',
-      answer: 'Detailed answer about your agent'
-    }
-  ],
-  deliverable: {
-    // Required deliverable configuration
-    type: 'document',
-    format: 'pdf'
-  },
-  handler: async (token: string, data: any) => {
-    // Required handler function
-    const response = await agentService.handleYourAgentRequest(
-      token,
-      data.payload.formData as YourAgentInput
-    );
-    return response;
-  }
-}
+};
 ```
-<Note>
-The handler function is an adapter function that will be used to call the agent's functionality.
-You still need to implement the agent's functionality in the backend.
-</Note>
 
-The agent configuration is a logical repreenstation of the agent that calls to the `agentService` to handle the agent's functionality.
+### 2. Define Schemas
 
-
-## 2. Update Schemas
-
-### Add the Agent Input Schema
-
-Add your agent's specific input/output types to `schemas/agent.ts`:
+Add your agent's types in your schemas:
 
 ```typescript
-// schemas/agent.ts
+// packages/core/src/agent-plane/your-agent/metadata/your-agent.schema.ts
 import { z } from 'zod';
 
-// Add your agent's input schema
-export const YourAgentInputSchema = z.object({
+export const YourAgentSchema = z.object({
+  sections: z.object({
+    section1: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('text'),
+      description: z.string().optional(),
+      data: z.string(),
+    }),
+    section2: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('list'),
+      description: z.string().optional(),
+      data: z.array(z.string()),
+    })
+  })
+});
+
+export const BasePayloadSchema = z.object({
+  userId: z.string(),
+  orderId: z.string(),
+  deliverableId: z.string(),
+  deliverableName: z.string(),
+  agentId: z.string(),
+});
+
+export const RequestAgentInputSchema = BasePayloadSchema.extend({
   field1: z.string(),
-  field2: z.number(),
-  // Add more fields as needed
+  field2: z.string(),
 });
 
-// Add your agent's output schema
-export const YourAgentOutputSchema = z.object({
+export const RequestAgentOutputSchema = z.object({
   result: z.string(),
-  // Add more fields as needed
 });
 
-// Export types
-export type YourAgentInput = z.infer<typeof YourAgentInputSchema>;
-export type YourAgentOutput = z.infer<typeof YourAgentOutputSchema>;
-```
-
-### Update API Schema
-
-Add your agent's API response types to `schemas/api.ts` with ResponseBody types.
-
-```typescript
-// schemas/api.ts
-import { z } from 'zod';
-import { YourAgentInputSchema, YourAgentOutputSchema } from './agent';
-
-export const RequestYourAgentResponseBodySchema = z.object({
-  success: z.boolean(),
-  data: YourAgentOutputSchema,
-  error: z.string().optional(),
+export const DeliverableSchema = z.object({
+  deliverableContent: YourAgentSchema,
 });
 
-export type RequestYourAgentResponseBody = z.infer<typeof RequestYourAgentResponseBodySchema>;
+export const DeliverableDTOSchema = BasePayloadSchema.extend({
+  deliverableContent: YourAgentSchema,
+});
+
+export type RequestAgentInput = z.infer<typeof RequestAgentInputSchema>;
+export type RequestAgentOutput = z.infer<typeof RequestAgentOutputSchema>;
+export type Deliverable = z.infer<typeof DeliverableSchema>;
+export type DeliverableDTO = z.infer<typeof DeliverableDTOSchema>;
 ```
 
-## 3. Update Agent Service
+### 3. Update API Infrastructure
 
-Add your agent's methods to `services/agentService.ts`:
+First, set up the necessary infrastructure components for your agent:
 
-Notice the token is passed in as a parameter and the response is typed to the `OrderResponseBody` type.
-
-The AgentService is a wrapper around the `apiService` allowing to compose the agent's functionality how you see fit.
-
-Here only one endpoint is called by you could add multiple endpoints. The recommended approach is to keep it simple and avoid having to many complex endpoints. 
-
-The complexity should live in the backend api endpoint. 
 ```typescript
-// services/agentService.ts
-import type { YourAgentInput } from '@/schemas';
-import { OrderResponseBody } from '@/schemas/http-responses';
+// infra/queues.ts
+export const yourAgentQueue = new sst.aws.Queue("YourAgentQueue", {
+    fifo: true
+})   
 
-export interface IAgentService {
-  // Add your new method
-  handleYourAgentRequest(token: string, data: YourAgentInput): Promise<OrderResponseBody>;
-  // ... existing methods
-}
+yourAgentQueue.subscribe({
+    handler: "./packages/functions/src/agent-plane.api.yourAgentHandler", 
+    link: [
+        deliverablesTable, 
+        ordersTable, 
+        openaiApiKey, 
+    ], 
+    permissions: [
+        {
+            actions: ["dynamodb:*"], 
+            resources: [deliverablesTable.arn, ordersTable.arn]
+        }
+    ],
+    timeout: "10 minutes"
+})
+```
 
-export class AgentService implements IAgentService {
-  // Implement your new method
-  async handleYourAgentRequest(token: string, data: YourAgentInput): Promise<OrderResponseBody> {
-    return apiService.requestEndpoint(token, data);
+```typescript
+// infra/topic.ts
+orderTopic.subscribeQueue(
+  "yourAgent", 
+  yourAgentQueue.arn, 
+  {
+      filter: {
+          "queue": ["yourAgent"]
+      }
   }
-  // ... existing methods
-}
+)
 ```
 
-## 4. Update API Service
-
-Add your agent's API endpoints to `services/api.ts`:
-
-This is where the actual API call is being made to your backend api . 
+Then, add your agent's endpoint to your API infrastructure:
 
 ```typescript
-// services/api.ts
-import type { YourAgentInput } from '@/schemas';
-import { OrderResponseBody } from '@/schemas/http-responses';
-
-export interface IApiService {
-  // Add your new endpoint
-  requestYourAgent(token: string, data: YourAgentInput): Promise<OrderResponseBody>;
-  // ... existing endpoints
-}
-
-export class ApiService implements IApiService {
-  // Implement your new endpoint
-  async requestYourAgent(token: string, data: YourAgentInput): Promise<OrderResponseBody> {
-    const response = await fetch(`${this.baseUrl}/your-agent`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to request your agent');
-    }
-
-    return response.json();
-  }
-  // ... existing methods
-}
-```
-
-Next you will need to implement the API endpoints on the backend. 
-
-
-# Implement the Agent's API Endpoints
-
-
-
-## 1. Set up Infrastructure
-
-All the infrastructure is located in the `/infra` folder. 
-
-Here you can add all the infrastructure needed to support the agent functionality. 
-
-For example endpoints, topics, queues, vector databases, etc. Refer to [SST Providers](https://sst.dev/docs/all-providers#directory) for a list of resources you can add. 
-
-For example is you will at minimum need to set up a new endpoint in the api. 
-
-```typescript
-// infra/api/your-agent.ts
-import { createEndpoint } from '@/infra/api';
-
+// infra/api.ts
 api.route("POST /your-agent", {
   link: [...apiResources],
   handler: "./packages/functions/src/orchestrator.api.handleRequestYourAgent",
@@ -231,148 +201,529 @@ api.route("POST /your-agent", {
 })
 ```
 
-## 2. Update the orchestrator 
+### 4. Update the Orchestrator
 
-In the `/orchestrator` folder you will need to route the request to the agent's functionality. 
+The orchestrator layer follows the AMU (Adapter-Metadata-Usecase) pattern to handle incoming requests and manage the flow of data. Here's how to implement each component:
 
-The orchestrator uses the [AMU Pattern](/concepts/amu-pattern) to handle the request. 
+#### Primary Adapter
 
-You have two main approaches for handling requests:
-
-### Event-Driven Flow
-For asynchronous processing, use the `TopicPublisher` to send the request to the order topic:
+The primary adapter handles incoming API Gateway events and validates user input:
 
 ```typescript
-// Your orchestrator handler
-import { topicPublisher } from '@orchestrator/adapters/secondary/topic-publisher.adapter';
+// packages/core/src/orchestrator/adapters/primary/request-your-agent.adapter.ts
+import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
+import { ValidUser } from '@utils/metadata/saas-identity.schema';
+import { RequestYourAgentInputSchema } from "@orchestrator/metadata/agent-plane.schema"
+import { publishYourAgentUseCase } from '@orchestrator/usecases/request-your-agent.usecase';
 
-export const handleRequestYourAgent = async (input: YourAgentInput) => {
-  const order: Order = {
-    topic: Topic.orders,
-    queue: 'your-agent-queue',
-    payload: {
-      orderId: generateOrderId(),
-      // ... other payload data
+export const requestYourAgentAdapter = async (
+  event: APIGatewayProxyEventV2
+): Promise<APIGatewayProxyResultV2> => {
+  try {
+    // Validate user authentication
+    const svm = new SaaSIdentityVendingMachine();
+    const validUser: ValidUser = await svm.getValidUser(event);
+
+    if (!validUser.userId) {
+      throw createError(HttpStatusCode.BAD_REQUEST, "Missing user id");
     }
-  };
-  
-  await topicPublisher.publishOrder(order);
-  
-  return {
-    success: true,
-    orderId: order.payload.orderId
-  };
+
+    // Parse and validate request body
+    const { field1, field2, deliverableName, agentId } = JSON.parse(event.body);
+    
+    if (!field1 || !field2) {
+      throw createError(HttpStatusCode.BAD_REQUEST, "Missing required fields");
+    }
+
+    // Validate input against schema
+    const parsedInput = RequestYourAgentInputSchema.parse({
+      userId: validUser.userId,
+      keyId: validUser.keyId,
+      orderId: randomUUID(),
+      deliverableId: randomUUID(),
+      field1: field1,
+      field2: field2,
+      deliverableName: deliverableName,
+      agentId: agentId
+    });
+
+    // Call use case and return response
+    const result = await publishYourAgentUseCase(parsedInput);
+    return OrchestratorHttpResponses.YourAgentRequestReceived({
+      body: result
+    });
+
+  } catch (error) {
+    return handleError(error);
+  }
 };
 ```
 
-### Direct Agent Plane Call
-For synchronous processing, use the `AgentPlaneAdapter` to call the agent plane directly:
+#### Metadata Layer
+
+The metadata layer defines the schemas and types used throughout the orchestrator:
 
 ```typescript
-// Your orchestrator handler
+// packages/core/src/orchestrator/metadata/order.schema.ts
+import { z } from 'zod';
+
+export enum Topic {
+  orders = 'orders'
+}
+
+export enum Queue {
+  yourAgent = 'yourAgent'
+}
+
+export enum Status {
+  Pending = 'pending',
+  InProgress = 'in-progress',
+  Completed = 'completed',
+  Failed = 'failed'
+}
+
+export const YourAgentOrderSchema = z.object({
+  topic: z.literal(Topic.orders),
+  queue: z.literal(Queue.yourAgent),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  payload: z.object({
+    orderId: z.string(),
+    userId: z.string(),
+    keyId: z.string(),
+    deliverableId: z.string(),
+    deliverableName: z.string(),
+    agentId: z.string(),
+    field1: z.string(),
+    field2: z.string()
+  })
+});
+
+export type YourAgentOrder = z.infer<typeof YourAgentOrderSchema>;
+```
+
+```typescript
+// packages/core/src/orchestrator/metadata/http-responses.schema.ts
+export const OrchestratorHttpResponses = {
+  YourAgentRequestReceived: ({ body }) => ({
+    statusCode: HttpStatusCode.CREATED,
+    body: JSON.stringify(body)
+  })
+} as const;
+```
+
+#### Use Case
+
+The use case contains the business logic for processing the request:
+
+```typescript
+// packages/core/src/orchestrator/usecases/request-your-agent.usecase.ts
+import { Queue, Topic, YourAgentOrder, Status } from '@orchestrator/metadata/order.schema'
+import { RequestAgentInput } from '@orchestrator/metadata/agent-plane.schema'
+import { TopicPublisher } from '@orchestrator/adapters/secondary/topic-publisher.adapter';
+import { OrderResponseBody } from '@orchestrator/metadata/http-responses.schema';
 import { agentPlaneAdapter } from '@orchestrator/adapters/secondary/agent-plane.adapters';
-
-export const handleRequestYourAgent = async (input: YourAgentInput) => {
-  // First save the order
-  const savedOrder = await agentPlaneAdapter.saveOrder({
-    // order details
-  });
-  
-  // Then make the direct agent plane call
-  const result = await agentPlaneAdapter.yourAgentMethod({
-    orderId: savedOrder.orderId,
-    // ... other input data
-  });
-  
-  return {
-    success: true,
-    data: result
-  };
-};
-```
-
-You can also use the `ControlPlaneAdapter` to handle credit management:
-
-```typescript
 import { controlPlaneAdapter } from '@orchestrator/adapters/secondary/control-plane.adapter';
 
-// Check remaining credits
-const credits = await controlPlaneAdapter.getRemainingCredits({
-  userId: input.userId
+export async function publishYourAgentUseCase(request: RequestAgentInput): Promise<OrderResponseBody> {
+  try {
+    // Construct the order
+    const order: YourAgentOrder = {
+      topic: Topic.orders,
+      queue: Queue.yourAgent,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      payload: {
+        orderId: request.orderId,
+        userId: request.userId,
+        keyId: request.keyId,
+        deliverableId: request.deliverableId,
+        deliverableName: request.deliverableName,
+        agentId: request.agentId,
+        field1: request.field1,
+        field2: request.field2
+      }
+    }
+
+    // Save order to database
+    await agentPlaneAdapter.saveOrder({
+      orderId: order.payload.orderId,
+      userId: order.payload.userId,
+      deliverableId: order.payload.deliverableId,
+      deliverableName: order.payload.deliverableName,
+      orderStatus: Status.Pending,
+      orderCreatedAt: order.createdAt,
+      orderUpdatedAt: order.updatedAt
+    });
+
+    // Update user credits
+    await controlPlaneAdapter.updateRemainingCredits({
+      keyId: request.keyId,
+      credits: AgentCost.YourAgent
+    });
+
+    // Publish order to SNS topic
+    const publisher = new TopicPublisher();
+    await publisher.publishOrder(order);
+
+    // Return response
+    return {
+      orderId: order.payload.orderId,
+      orderStatus: Status.Pending,
+      orderCreatedAt: order.createdAt,
+      deliverableName: order.payload.deliverableName
+    }
+
+  } catch (error) {
+    console.error('Error in yourAgentUseCase:', error);
+    throw new Error('Failed to publish your agent task');
+  }
+}
+```
+
+#### Secondary Adapters
+
+The secondary adapters handle external interactions:
+
+```typescript
+// packages/core/src/orchestrator/adapters/secondary/topic-publisher.adapter.ts
+import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
+import { YourAgentOrder } from '@orchestrator/metadata/order.schema';
+import { Resource } from 'sst/node/resource';
+
+export class TopicPublisher {
+  private client: SNSClient;
+  private topicArn: string;
+
+  constructor() {
+    this.client = new SNSClient({});
+    this.topicArn = Resource.orderTopic.arn;
+  }
+
+  async publishOrder(order: YourAgentOrder): Promise<void> {
+    try {
+      const command = new PublishCommand({
+        TopicArn: this.topicArn,
+        Message: JSON.stringify(order),
+        MessageAttributes: {
+          queue: {
+            DataType: 'String',
+            StringValue: order.queue
+          }
+        }
+      });
+
+      await this.client.send(command);
+    } catch (error) {
+      console.error('Error publishing to SNS:', error);
+      throw error;
+    }
+  }
+}
+```
+
+```typescript
+// packages/core/src/orchestrator/adapters/secondary/agent-plane.adapter.ts
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { Resource } from 'sst/node/resource';
+
+export const agentPlaneAdapter = {
+  async saveOrder(order: {
+    orderId: string;
+    userId: string;
+    deliverableId: string;
+    deliverableName: string;
+    orderStatus: string;
+    orderCreatedAt: string;
+    orderUpdatedAt: string;
+  }): Promise<void> {
+    const client = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+    await client.send(new PutCommand({
+      TableName: Resource.ordersTable.tableName,
+      Item: order
+    }));
+  }
+};
+```
+
+This implementation follows the AMU pattern to:
+1. Validate and process incoming requests (Primary Adapter)
+2. Define data structures and types (Metadata)
+3. Implement business logic (Use Case)
+4. Handle external interactions (Secondary Adapters)
+
+### 5. Implement Agent Plane Logic
+
+The agent plane implementation follows the AMU (Adapter-Metadata-Usecase) pattern for clean architecture and separation of concerns:
+
+#### Metadata Layer
+
+```typescript
+// packages/core/src/agent-plane/your-agent/metadata/your-agent.prompt.ts
+export const yourAgentSystemPrompt = (input: RequestAgentInput) => `
+You are an expert in your domain.
+Your task is to create a detailed one-page deliverable based on the provided input:
+${JSON.stringify(input)}
+Focus on providing actionable insights and recommendations.
+`;
+```
+
+#### Primary Adapter
+
+```typescript
+// packages/core/src/agent-plane/your-agent/adapters/primary/create-agent.adapter.ts
+import { SQSEvent, SQSRecord } from 'aws-lambda';
+import { RequestAgentInputSchema } from '@agent-plane/your-agent/metadata/your-agent.schema';
+import { createAgentUsecase } from '@agent-plane/your-agent/usecases/create-agent.usecase';
+
+export const createAgentAdapter = async (event: SQSEvent) => {
+    console.info("--- Your Agent Queue Adapter ---");
+    if (!event.Records || event.Records.length === 0) {
+        throw new Error("Missing SQS Records");
+    }
+
+    const results = await Promise.all(event.Records.map(async (record: SQSRecord) => {
+        const message = JSON.parse(record.body);
+        const order = RequestAgentInputSchema.parse(JSON.parse(message.Message));
+        return await createAgentUsecase(order);
+    }));
+
+    return results;
+};
+```
+
+#### Use Case
+
+```typescript
+// packages/core/src/agent-plane/your-agent/usecases/create-agent.usecase.ts
+import { Deliverable, DeliverableDTO, RequestAgentInput } from '@agent-plane/your-agent/metadata/your-agent.schema'
+import { runAgent } from '@agent-plane/your-agent/adapters/secondary/openai.adapter';
+import { deliverableRepository } from '@agent-plane/your-agent/adapters/secondary/datastore.adapter';
+import { Message } from '@utils/metadata/message.schema';
+
+export const createAgentUsecase = async (input: RequestAgentInput): Promise<Message> => {
+  console.info("Creating agent deliverable");
+
+  try {
+    const content = await runAgent(input);
+    const deliverable: DeliverableDTO = {
+      userId: input.userId,
+      orderId: input.orderId,
+      deliverableId: input.deliverableId,
+      deliverableName: input.deliverableName,
+      agentId: input.agentId,
+      ...content
+    };
+    await deliverableRepository.saveDeliverable(deliverable);
+    return {
+      message: 'Agent deliverable created successfully',
+    };
+
+  } catch (error) {
+    console.error('Error generating agent deliverable:', error);
+    throw new Error('Failed to generate agent deliverable');
+  }
+};
+```
+
+#### Secondary Adapters
+
+```typescript
+// packages/core/src/agent-plane/your-agent/adapters/secondary/openai.adapter.ts
+import OpenAI from "openai";
+import { Deliverable, DeliverableSchema, RequestAgentInput } from "@agent-plane/your-agent/metadata/your-agent.schema";
+import { Resource } from "sst";
+import { withRetry } from "@utils/tools/retry";
+import { yourAgentSystemPrompt } from "../../metadata/your-agent.prompt";
+import { zodToJsonSchema } from "zod-to-json-schema";
+import { zodResponseFormat } from "openai/helpers/zod";
+
+const client = new OpenAI({
+  apiKey: Resource.OpenAIApiKey.value
 });
 
-// Update credits after processing
-await controlPlaneAdapter.updateRemainingCredits({
-  userId: input.userId,
-  credits: credits.remaining - costOfOperation
+export const createAgent = async (input: RequestAgentInput): Promise<Deliverable> => {
+  console.info("Creating agent deliverable via OpenAI");
+  try {
+    // Create an Assistant
+    const assistant = await client.beta.assistants.create({
+      name: "Your Agent",
+      instructions: yourAgentSystemPrompt(input),
+      model: "gpt-4",
+      response_format: zodResponseFormat(DeliverableSchema, "deliverable"),
+      tools: [{ type: "function", function: {
+        name: "generateDeliverable",
+        parameters: zodToJsonSchema(DeliverableSchema)
+      }}]
+    });
+
+    // Create a Thread
+    const thread = await client.beta.threads.create();
+
+    // Run the Assistant
+    const run = await client.beta.threads.runs.create(thread.id, {
+      assistant_id: assistant.id
+    });
+
+    // Wait for completion
+    const completedRun = await waitForRunCompletion(client, thread.id, run.id);
+    
+    // Get the messages
+    const messages = await client.beta.threads.messages.list(thread.id);
+    const lastMessage = messages.data[0];
+
+    if (!lastMessage.content || lastMessage.content.length === 0) {
+      throw new Error("No content generated");
+    }
+
+    const textContent = lastMessage.content.find(c => c.type === 'text');
+    if (!textContent) {
+      throw new Error("No text content found");
+    }
+
+    const content = JSON.parse(textContent.text.value);
+    const validatedContent = await DeliverableSchema.parseAsync(content);
+    
+    // Cleanup
+    await client.beta.assistants.del(assistant.id);
+    await client.beta.threads.del(thread.id);
+
+    return validatedContent;
+  } catch (error) {
+    console.error('Error generating agent deliverable:', error);
+    throw error;
+  }
+};
+
+async function waitForRunCompletion(client: OpenAI, threadId: string, runId: string) {
+  while (true) {
+    const run = await client.beta.threads.runs.retrieve(threadId, runId);
+    
+    switch (run.status) {
+      case 'completed':
+        return run;
+      case 'failed':
+      case 'cancelled':
+      case 'expired':
+        throw new Error(`Run ended with status: ${run.status}`);
+      case 'requires_action':
+        if (run.required_action?.type === 'submit_tool_outputs') {
+          const toolCall = run.required_action.submit_tool_outputs.tool_calls[0];
+          const functionArgs = JSON.parse(toolCall.function.arguments);
+          await client.beta.threads.runs.submitToolOutputs(threadId, runId, {
+            tool_outputs: [{
+              tool_call_id: toolCall.id,
+              output: JSON.stringify(functionArgs)
+            }]
+          });
+        }
+        break;
+      default:
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+}
+
+export const runAgent = withRetry(createAgent, {
+  retries: 3,
+  delay: 1000,
+  onRetry: (error: Error) => console.warn('Retrying agent generation due to error:', error)
 });
 ```
 
-## 3. Update the Agent Plane
+### 6. Testing
 
-In the `/agent-plane` folder you will need to implement the agent's functionality. 
+The testing strategy is split into two levels: unit tests for the agent logic and API-level integration tests.
 
-Below is a quick checklist to follow when implementing the agent's functionality.
-- Create a new directory for your agent 
-- Create a primary adapter 
-- Define the metadata for the agent including prompts, tools, etc. 
-- Define the usecase for the agent 
-- Define the secondary adapteres for the agent 
+#### Unit Testing
 
+```typescript
+// packages/core/tests/agent-tests/your-agent.test.ts
+import { DeliverableSchema } from '@agent-plane/your-agent/metadata/your-agent.schema';
+import { runAgent } from '@agent-plane/your-agent/adapters/secondary/openai.adapter';
 
-Leverage the [AMU Pattern](/concepts/amu-pattern) to implement the agent's functionality. 
+describe('Your Agent', () => {
+  const testInput = {
+    field1: 'Test field 1',
+    field2: 'Test field 2'
+  };
 
-## 4. Wire up the functions in /functions
+  it('should generate a deliverable', async () => {
+    const result = await runAgent({
+      ...testInput,
+      userId: '123',
+      orderId: '123',
+      deliverableId: '123',
+      deliverableName: 'test',
+      agentId: '123'
+    });
+    
+    // Verify the structure matches the schema
+    expect(() => DeliverableSchema.parse(result)).not.toThrow();
 
-Update the orchestrator.api.ts file to call the agent's functionality. 
+    // Verify required sections
+    expect(result.deliverableContent.sections.section1).toBeDefined();
+    expect(result.deliverableContent.sections.section2).toBeDefined();
+  }, 100000);
+});
+```
 
-Update the agent-plane.ts file to make the agent's functionality available to the orchestrator. 
+#### API Testing
 
-If you made updates to the control plane you will also need to update the control-plane.ts file. 
+```typescript
+// packages/core/tests/api-tests/one-page-services.test.ts
+test('User should be able to request agent deliverable', async () => {
+  const testInput = {
+    deliverableName: "test deliverable",
+    field1: 'Test field 1',
+    field2: 'Test field 2'
+  };
 
-Now that you have updated both the dashboard and the backend api you should be able to run an end to end test.
+  const response = await fetch(`${API_URL}/your-agent`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(testInput),
+  });
 
+  expect(response.status).toBe(201);
+  const data = await response.json() as OrderResponseBody;
+  expect(data).toHaveProperty('orderId');
+});
+```
 
-# Running Tests
+To run the tests:
 
-1. Start a dev version of the dashboard 
-
+1. Start the development environment:
 ```bash
-cd dashboard
+# Start the dashboard
+cd agentic-dashboard-template
 yarn dev
-```
-This will bring up a dev version of the dashboard in your browser at localhost:3000.
 
-2. Start a dev version of the backend api 
-
-```bash
-cd api
+# Start the API in sandbox mode
+cd agentic-api-template
 yarn sst dev --stage sandbox
 ```
 
-This will bring up a live version of the api at https://sandbox-api.yourdomain.com/v1/
-
-3. Run the tests 
-
-You can now run tests from the dashboard repo,api repo or perform manual checks. 
-
-Test are configured with jest and can be run with the following commands. It is recommended that you install jest globally to run the tests and use an extension with your IDE to run them inline. 
-
-To run tests in the dashboard repo:
-
+2. Run the tests:
 ```bash
-cd dashboard
-yarn test <test-name>
+cd agentic-api-template/packages/core
+
+# Run unit tests
+yarn test agent-tests/your-agent
+
+# Run API tests
+yarn test api-tests/one-page-services
 ```
 
-To run tests in the api repo:
+The testing strategy ensures:
+- Unit tests verify the agent's core logic and output structure
+- API tests confirm the end-to-end request flow
+- Schema validation checks the output format
+- Authentication and authorization are properly tested
+- Error cases are handled appropriately
 
-```bash
-cd api/packages/core/src
-yarn test <test-name>
-```
-
-This is a basic overview of how to add a new agent to the application. For more detailed examples see [Example Agents](/examples/value-strategist).
+Your new agent is now ready to help users with their specific needs!
 
 
 
