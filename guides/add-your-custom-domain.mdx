@@ -5,22 +5,20 @@ description: 'Configure custom domains for your Agentic Team OS deployment'
 
 # Custom Domain Setup
 
-This guide explains how to set up custom domains for your Agentic Team OS deployment. We recommend purchasing and managing your domains through Cloudflare for optimal integration with the platform.
+This guide explains how to set up custom domains for your Agentic Team OS deployment.
 
 ## Prerequisites
 
-1. Purchase a domain through Cloudflare
-2. Set up a Cloudflare account
-3. Sett the domain SSL/TLS encryption mode to "Full Strict"
-4. Generate a Cloudflare API key with the following permissions:
+1. Purchase a domain through Cloudflare or transfer your exiting domain to Cloudflare
+2. Set the domain SSL/TLS encryption mode to "Full Strict"
+3. Generate a Cloudflare API key with the following permissions:
     - Access: Organizations, Identity Providers, and Groups:Read
     - Account Settings:Read
     - Account Settings:Edit
     - Account Settings:Edit
 
 <Note>
-When setting up DNS records for the first time, the initial deployment through SST may be slow. Subsequent updates will be alot faster.
-
+When setting up DNS records for the first time, the initial deployment through SST may be slow because it needs to bootstrap the DNS records. Subsequent updates will be alot faster.
 </Note>
 
 ## Domain Configuration
@@ -46,21 +44,6 @@ www.{stage}-yourdomain.com # Landing Page Template
 ```
 
 
-## Environment Variables
-
-Add the following environment variables to each template's `.env` file:
-
-```bash
-# API Template (.env)
-CLOUDFLARE_API_TOKEN=your-cloudflare-api-token  
-
-# Dashboard Template (.env)
-CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
-
-# Landing Page Template (.env)
-CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
-```
-
 ## Under the Hood 
 
 SST is used to automate the confguration of your custom domains. 
@@ -73,7 +56,7 @@ See below for the configuration of each template.
 
 
 
-### Add You Custom Domain to the API Template
+### Add Your Custom Domain to the API Template
 
 Based on the documentation and code, I'll explain how SST configures custom domains and providers in this setup:
 
@@ -150,9 +133,7 @@ BASE_DOMAIN=yourdomain.com
 2. SST Configuration:
 The `sst.config.ts` file configures the custom domain and Cloudflare provider:
 
-```typescript:agentic-dashboard-template/sst.config.ts
-// ... existing code ...
-
+```typescript
 const baseDomain = process.env.BASE_DOMAIN;
 if (!baseDomain) {
   throw new Error("BASE_DOMAIN environment variable is required");
