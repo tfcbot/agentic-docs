@@ -3,11 +3,19 @@ title: 'Value Strategist'
 description: 'Turn your idea into a comprehensive value specification'
 ---
 
-The Value Strategist agent helps you transform your application idea into a detailed value specification document that clearly articulates your value propositions and target market.
+This guide demonstrates how to implement the Value Strategist agent in your Agentic Templates application.
 
-### 1. Create Agent Configuration
+## Implementation Guide
 
-First, create the Value Strategist configuration in your dashboard project:
+Follow these steps to implement the Value Strategist agent.
+
+### 1. Implement the Agent UI
+
+Start with the agent configuration in the dashboard repository. This is where you'll define how the Value Strategist appears and behaves in the UI.
+
+#### Create Agent Configuration
+
+First, create your Value Strategist configuration in your dashboard project:
 
 ```typescript
 // src/lib/agents/valueStrategist.agent.ts
@@ -65,10 +73,53 @@ export const valueStrategistAgent: AgentConfig = {
     }
   ],
   deliverable: {
-    type: 'document',
-    format: 'pdf'
+    sections: [
+      {
+        id: 'valueProposition',
+        label: 'Value Proposition',
+        type: 'text',
+        description: 'Core value proposition',
+        order: 1
+      },
+      {
+        id: 'targetMarket',
+        label: 'Target Market',
+        type: 'text',
+        description: 'Market segmentation analysis',
+        order: 2
+      },
+      {
+        id: 'painPoints',
+        label: 'Pain Points',
+        type: 'list',
+        description: 'Customer pain points',
+        order: 3
+      },
+      {
+        id: 'gains',
+        label: 'Gains',
+        type: 'list',
+        description: 'Customer gains',
+        order: 4
+      },
+      {
+        id: 'competitors',
+        label: 'Competitors',
+        type: 'text',
+        description: 'Competitive analysis',
+        order: 5
+      },
+      {
+        id: 'positioning',
+        label: 'Positioning',
+        type: 'text',
+        description: 'Strategic positioning',
+        order: 6
+      }
+    ],
+    availableFormats: ['pdf', 'markdown'],
   },
-  handler: async (token: string, data: any) => {
+  handler: async (token: string, data: OrderFormData) => {
     const response = await agentService.handleValueStrategistRequest(
       token,
       data.payload.formData
@@ -78,40 +129,88 @@ export const valueStrategistAgent: AgentConfig = {
 };
 ```
 
-### 2. Define Schemas
+#### Update the index file in `lib/agents/index.ts`
 
-Add the Value Strategist types in your schemas:
+```typescript
+// src/lib/agents/index.ts
+import { valueStrategistAgent } from './valueStrategist.agent';
+
+export const agents = {
+    valueStrategist: valueStrategistAgent,
+    // ... other agents
+} as const;
+```
+
+#### Update `schemas/agent.ts` with the input types for the agent
 
 ```typescript
 // src/schemas/agent.ts
 import { z } from 'zod';
 
 export const ValueStrategistInputSchema = z.object({
-  businessIdea: z.string().min(10),
-  targetMarket: z.string().min(5),
-  competitors: z.string().optional()
-});
-
-export const ValueStrategistOutputSchema = z.object({
-  valueProposition: z.string(),
-  marketAnalysis: z.string(),
-  competitorAnalysis: z.string(),
-  recommendations: z.array(z.string())
+    businessIdea: z.string().min(10),
+    targetMarket: z.string().min(5),
+    competitors: z.string().optional()
 });
 
 export type ValueStrategistInput = z.infer<typeof ValueStrategistInputSchema>;
-export type ValueStrategistOutput = z.infer<typeof ValueStrategistOutputSchema>;
 ```
 
-### 3. Update API Infrastructure
+#### Update `schemas/api.ts` with the response body expected from the API
 
-First, set up the necessary infrastructure components for the Value Strategist:
+```typescript
+// src/schemas/api.ts
+import { z } from 'zod';
+
+export const ValueStrategistResponseSchema = z.object({
+    orderId: z.string(),
+    orderStatus: z.string(),
+    orderCreatedAt: z.string(),
+    deliverableName: z.string()
+});
+
+export type ValueStrategistResponse = z.infer<typeof ValueStrategistResponseSchema>;
+```
+
+#### Add the handler to `services/agentService.ts`
+
+```typescript
+// src/services/agentService.ts
+import { ValueStrategistInput, ValueStrategistResponse } from '@/schemas';
+import { api } from './api';
+
+export const agentService = {
+    handleValueStrategistRequest: async (
+        token: string,
+        input: ValueStrategistInput
+    ): Promise<ValueStrategistResponse> => {
+        return await api.post('/value-strategy', input, token);
+    }
+};
+```
+
+### 2. Implement the API Endpoints
+
+### 2.1 Update the infrastructure to support the Value Strategist
+
+#### Update the `infra/api.ts` file
+
+```typescript
+// infra/api.ts
+api.route("POST /value-strategy", {
+    link: [...apiResources],
+    handler: "./packages/functions/src/orchestrator.api.handleRequestValueStrategy",
+    timeout: "900 seconds"
+});
+```
+
+#### Update the `infra/queues.ts` file
 
 ```typescript
 // infra/queues.ts
 export const valueStrategyQueue = new sst.aws.Queue("ValueStrategyQueue", {
     fifo: true
-})   
+});   
 
 valueStrategyQueue.subscribe({
     handler: "./packages/functions/src/agent-plane.api.valueStrategyHandler", 
@@ -127,247 +226,34 @@ valueStrategyQueue.subscribe({
         }
     ],
     timeout: "10 minutes"
-})
+});
 ```
+
+#### Update the `infra/topic.ts` file
 
 ```typescript
 // infra/topic.ts
 orderTopic.subscribeQueue(
-  "valueStrategy", 
-  valueStrategyQueue.arn, 
-  {
-      filter: {
-          "queue": ["valueStrategy"]
-      }
-  }
-)
+    "valueStrategy", 
+    valueStrategyQueue.arn, 
+    {
+        filter: {
+            "queue": ["valueStrategy"]
+        }
+    }
+);
 ```
 
-Then, add the Value Strategist endpoint to your API infrastructure:
+### 2.2 Update the orchestrator to route the request to the order topic
+
+#### Update the `metadata/agent-plane.schema.ts` file with input types
 
 ```typescript
-// infra/api.ts
-import { 
-  usersTable,
-  ordersTable,
-  deliverablesTable
-} from "./database";
-import { secrets } from "./secrets";
-import { orderTopic } from "./topic";
-import { valueStrategyQueue } from "./queues";
-
-const apiResources = [
-  orderTopic,
-  valueStrategyQueue,
-  usersTable,
-  ordersTable,
-  deliverablesTable,
-  ...secrets,
-]
-
-api.route("POST /value-strategy", {
-  link: [...apiResources],
-  handler: "./packages/functions/src/orchestrator.api.handleRequestValueStrategy",
-  timeout: "900 seconds"
-})
-```
-
-The infrastructure setup:
-- Creates a FIFO queue specifically for value strategy processing
-- Subscribes the queue to the order topic with a filter for value strategy requests
-- Sets up queue subscription with necessary permissions and resources
-- Links the queue handler to the agent plane implementation
-- Configures a 10-minute timeout for queue processing
-- Includes all required resources in the API endpoint configuration
-
-<Note>
-The FIFO (First-In-First-Out) queue ensures that value strategy requests are processed in order, which is important for maintaining consistency in the credit system and order processing.
-</Note>
-
-### 4. Update the Orchestrator
-
-The orchestrator consists of two main components: the adapter and the usecase.
-
-First, create the primary adapter that handles the API request:
-
-```typescript
-// packages/core/src/orchestrator/adapters/primary/request-value-strategy.adapter.ts
-import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
-import { ValidUser } from '@utils/metadata/saas-identity.schema';
-import { SaaSIdentityVendingMachine } from '@utils/tools/saas-identity';
-import { RequestValueStrategyInputSchema } from "@orchestrator/metadata/agent-plane.schema"
-import { publishValueStrategyUseCase } from '@orchestrator/usecases/request-value-strategy.usecase';
-import { randomUUID } from 'crypto';
-
-export const requestValueStrategyAdapter = async (
-  event: APIGatewayProxyEventV2
-): Promise<APIGatewayProxyResultV2> => {
-  try {
-    const svm = new SaaSIdentityVendingMachine();
-    const validUser: ValidUser = await svm.getValidUser(event);
-
-    if (!validUser.userId) {
-      throw createError(HttpStatusCode.BAD_REQUEST, "Missing user id");
-    }
-
-    if (!event.body) {
-      throw createError(HttpStatusCode.BAD_REQUEST, "Missing request body");
-    }
-   
-    const { applicationIdea, idealCustomer, problem, solution, deliverableName, agentId } = JSON.parse(event.body);
-    
-    if (!applicationIdea || !idealCustomer || !problem || !solution) {
-      throw createError(HttpStatusCode.BAD_REQUEST, "Missing required fields");
-    }
-
-    const parsedInput = RequestValueStrategyInputSchema.parse({
-      userId: validUser.userId,
-      keyId: validUser.keyId,
-      orderId: randomUUID(),
-      deliverableId: randomUUID(),
-      applicationIdea,
-      idealCustomer,
-      problem,
-      solution,
-      deliverableName,
-      agentId
-    });
-
-    const result = await publishValueStrategyUseCase(parsedInput);
-
-    return OrchestratorHttpResponses.ValueStrategyRequestReceived({
-      body: result
-    });
-
-  } catch (error) {
-    return handleError(error);
-  }
-};
-```
-
-Then, implement the usecase that handles the business logic:
-
-```typescript
-// packages/core/src/orchestrator/usecases/request-value-strategy.usecase.ts
-import { Queue, Topic, ValueStrategyOrder } from '@orchestrator/metadata/order.schema'
-import { RequestValueStrategyInput } from '@orchestrator/metadata/agent-plane.schema'
-import { TopicPublisher } from '@orchestrator/adapters/secondary/topic-publisher.adapter';
-import { AgentCost } from '../metadata/order.enum';
-
-export async function publishValueStrategyUseCase(request: RequestValueStrategyInput): Promise<OrderResponseBody> {
-  try {
-    const order: ValueStrategyOrder = {
-      topic: Topic.orders,
-      queue: Queue.valueStrategy,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      payload: {
-        orderId: request.orderId,
-        keyId: request.keyId,
-        userId: request.userId,
-        deliverableId: request.deliverableId,
-        agentId: request.agentId,
-        deliverableName: request.deliverableName,
-        applicationIdea: request.applicationIdea,
-        idealCustomer: request.idealCustomer,
-        problem: request.problem,
-        solution: request.solution
-      }
-    }
-
-    const publisher = new TopicPublisher();
-    await agentPlaneAdapter.saveOrder({
-      orderId: order.payload.orderId,
-      userId: order.payload.userId,
-      deliverableId: order.payload.deliverableId,
-      deliverableName: order.payload.deliverableName,
-      orderStatus: Status.Pending,
-      orderCreatedAt: order.createdAt,
-      orderUpdatedAt: order.updatedAt
-    });
-    await updateCreditsAdapter.updateRemainingCredits({
-      keyId: request.keyId,
-      credits: AgentCost.ValueStrategy
-    });
-    await publisher.publishOrder(order);
-
-    return {
-      orderId: order.payload.orderId,
-      orderStatus: 'pending',
-      orderCreatedAt: new Date().toISOString(),
-      deliverableName: order.payload.deliverableName
-    }
-  } catch (error) {
-    console.error('Error in valueStrategyUseCase:', error);
-    throw new Error('Failed to publish value strategy task');
-  }
-}
-```
-
-The orchestrator follows a clean architecture pattern:
-
-1. The adapter:
-   - Validates the incoming API request
-   - Authenticates the user using SaaS identity
-   - Parses and validates the request body
-   - Generates unique IDs for order tracking
-   - Calls the usecase with validated input
-
-2. The usecase:
-   - Creates an order with the validated input
-   - Saves the order details to the database
-   - Updates the user's credit balance
-   - Publishes the order to the topic for async processing
-   - Returns order tracking information
-
-This implementation ensures:
-- Proper request validation and error handling
-- Secure user authentication
-- Asynchronous processing through the queue system
-- Credit management integration
-- Order tracking and status updates
-
-### 5. Implement Agent Plane Logic
-
-The agent plane implementation follows the AMU (Adapter-Metadata-Usecase) pattern. Let's implement each component:
-
-#### 5.1 Metadata Layer
-
-First, define the metadata that establishes the contract between components:
-
-```typescript
-// packages/core/src/agent-plane/value-strategist/metadata/value-strategist.prompts.ts
-export const valueStrategySystemPrompt = () => `You are an expert value strategist. Your order is to create a detailed one-page value proposition based on the provided application idea, target customer, problem, and proposed solution. Focus on articulating the unique value and competitive advantages.`;
-```
-
-```typescript
-// packages/core/src/agent-plane/value-strategist/metadata/value-strategist.schema.ts
-import { z } from "zod";
+// packages/core/src/orchestrator/metadata/agent-plane.schema.ts
+import { z } from 'zod';
 
 export const ValueStrategySchema = z.object({
-  deliverableName: z.string(),
   sections: z.object({
-    applicationIdea: z.object({
-      id: z.string(),
-      label: z.string(), 
-      type: z.literal('text'),
-      description: z.string().optional(),
-      data: z.string(),
-    }),
-    idealCustomer: z.object({
-      id: z.string(),
-      label: z.string(), 
-      type: z.literal('text'),
-      description: z.string().optional(),
-      data: z.string(),
-    }),
-    problem: z.object({
-      id: z.string(),
-      label: z.string(),
-      type: z.literal('text'), 
-      description: z.string().optional(),
-      data: z.string(),
-    }),
     valueProposition: z.object({
       id: z.string(),
       label: z.string(),
@@ -375,7 +261,41 @@ export const ValueStrategySchema = z.object({
       description: z.string().optional(),
       data: z.string(),
     }),
-    // ... other sections
+    targetMarket: z.object({
+      id: z.string(), 
+      label: z.string(),
+      type: z.literal('text'),
+      description: z.string().optional(),
+      data: z.string(),
+    }),
+    painPoints: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('list'),
+      description: z.string().optional(),
+      data: z.array(z.string()),
+    }),
+    gains: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('list'),
+      description: z.string().optional(),
+      data: z.array(z.string()),
+    }),
+    competitors: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('text'),
+      description: z.string().optional(),
+      data: z.string(),
+    }),
+    positioning: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.literal('text'),
+      description: z.string().optional(),
+      data: z.string(),
+    })
   })
 });
 
@@ -388,20 +308,60 @@ export const BasePayloadSchema = z.object({
 });
 
 export const RequestValueStrategyInputSchema = BasePayloadSchema.extend({
-  applicationIdea: z.string(),
-  idealCustomer: z.string(),
-  problem: z.string(),
-  solution: z.string()
+  businessIdea: z.string(),
+  targetMarket: z.string(),
+  competitors: z.string().optional()
 });
 
 export type RequestValueStrategyInput = z.infer<typeof RequestValueStrategyInputSchema>;
-export type Deliverable = z.infer<typeof DeliverableSchema>;
-export type DeliverableDTO = z.infer<typeof DeliverableDTOSchema>;
 ```
 
-#### 5.2 Primary Adapters
+#### Update the `metadata/order.enum.ts` file with the cost of the agent
 
-Create the primary adapter that handles incoming queue messages:
+```typescript
+// packages/core/src/orchestrator/metadata/order.enum.ts
+export enum AgentCost {
+    ValueStrategy = 50,
+}
+```
+
+### 2.3 Add the Value Strategist module to the `agent-plane`
+
+Create the following directory structure:
+```
+agent-plane/value-strategist/
+├── adapters/
+│   ├── primary/
+│   │   └── create-value-strategy.adapter.ts
+│   └── secondary/
+│       ├── openai.adapter.ts
+│       └── datastore.adapter.ts
+├── metadata/
+│   ├── value-strategist.schema.ts
+│   └── value-strategist.prompt.ts
+└── usecases/
+    └── create-value-strategy.usecase.ts
+```
+
+#### Implement the metadata for the agent in `metadata/value-strategist.prompt.ts`
+
+```typescript
+// packages/core/src/agent-plane/value-strategist/metadata/value-strategist.prompt.ts
+export const valueStrategySystemPrompt = (input: RequestValueStrategyInput) => `
+You are an expert value strategist.
+Your task is to create a detailed one-page value specification based on the provided business idea, target market, and competitor information.
+${JSON.stringify(input)}
+Focus on providing actionable insights and strategic recommendations.
+   For the valueProposition section, provide a clear and compelling statement of value.
+   For the targetMarket section, analyze and segment the market.
+   For the painPoints section, list key customer pain points.
+   For the gains section, list key customer gains.
+   For the competitors section, analyze the competitive landscape.
+   For the positioning section, provide strategic positioning recommendations.
+`;
+```
+
+#### Implement the primary adapter in `adapters/primary/create-value-strategy.adapter.ts`
 
 ```typescript
 // packages/core/src/agent-plane/value-strategist/adapters/primary/create-value-strategy.adapter.ts
@@ -425,31 +385,30 @@ export const createValueStrategyAdapter = async (event: SQSEvent) => {
 };
 ```
 
-#### 5.3 Usecases
-
-Implement the core business logic in the usecase:
+#### Implement the usecase in `usecases/create-value-strategy.usecase.ts`
 
 ```typescript
 // packages/core/src/agent-plane/value-strategist/usecases/create-value-strategy.usecase.ts
-import { DeliverableDTO, RequestValueStrategyInput } from '@agent-plane/value-strategist/metadata/value-strategist.schema'
+import { Deliverable, DeliverableDTO, RequestValueStrategyInput } from '@agent-plane/value-strategist/metadata/value-strategist.schema'
 import { runValueStrategy } from '@agent-plane/value-strategist/adapters/secondary/openai.adapter';
+import { deliverableRepository } from '@agent-plane/value-strategist/adapters/secondary/datastore.adapter';
 import { Message } from '@utils/metadata/message.schema';
-import { randomUUID } from 'crypto';
-import { deliverableRepository } from '@agent-plane/value-strategist/adapters/secondary/datasotre.adapter';
 
 export const createValueStrategyUsecase = async (input: RequestValueStrategyInput): Promise<Message> => {
-  console.log("--- Create Value Strategy Usecase ---");
+  console.info("--- Creating Value Strategy via Usecase ---");
+
   try {
-    const deliverableContent = await runValueStrategy(input);
+    const result = await runValueStrategy(input);
     const deliverable: DeliverableDTO = {
       userId: input.userId,
       orderId: input.orderId,
       deliverableId: input.deliverableId,
       deliverableName: input.deliverableName,
       agentId: input.agentId,
-      ...deliverableContent
+      ...result
     };
     await deliverableRepository.saveDeliverable(deliverable);
+
     return {
       message: "Value strategy created successfully"
     };
@@ -461,135 +420,123 @@ export const createValueStrategyUsecase = async (input: RequestValueStrategyInpu
 };
 ```
 
-The agent plane implementation:
-- Uses metadata to define the system prompt and data schemas
-- Implements a primary adapter for handling SQS events
-- Contains core business logic in the usecase
-- Follows clean architecture principles with clear separation of concerns
-- Provides proper error handling and logging
-- Uses type safety through Zod schemas
-
-### Testing
-
-The testing strategy is split into two levels: unit tests for the agent logic and API-level integration tests.
-
-#### Unit Testing
-
-Create a unit test file to verify the agent's core functionality:
+#### Implement the secondary adapter in `adapters/secondary/openai.adapter.ts`
 
 ```typescript
-// packages/core/tests/agent-tests/value-strategist.agent.test.ts
-import { ValueStrategySchema } from '@agent-plane/value-strategist/metadata/value-strategist.schema';
-import { runValueStrategy } from '@agent-plane/value-strategist/adapters/secondary/openai.adapter';
+// packages/core/src/agent-plane/value-strategist/adapters/secondary/openai.adapter.ts
+import OpenAI from "openai";
+import { Deliverable, DeliverableSchema, RequestValueStrategyInput } from "@agent-plane/value-strategist/metadata/value-strategist.schema";
+import { Resource } from "sst";
+import { withRetry } from "@utils/tools/retry";
+import { valueStrategySystemPrompt } from "../../metadata/value-strategist.prompt";
+import { zodToJsonSchema } from "zod-to-json-schema";
+import { zodResponseFormat } from "openai/helpers/zod";
 
-// Mock SST Resource
-jest.mock('sst', () => ({
-  Resource: {
-    OpenAIApiKey: { value: process.env.OPENAI_API_KEY }
-  }
-}));
+const client = new OpenAI({
+  apiKey: Resource.OpenAIApiKey.value
+});
 
-describe('Value Strategist Agent', () => {
-  const testInput = {
-    problem: 'Fragmented team communication',
-    applicationIdea: 'Business communication platform',
-    idealCustomer: 'Enterprise software companies',
-    solution: 'Integrated messaging and collaboration platform'
-  };
-
-  it('should generate a value strategy', async () => {
-    const strategy = await runValueStrategy({
-      ...testInput,
-      userId: '123',
-      orderId: '123',
-      deliverableId: '123'
+export const createValueStrategy = async (input: RequestValueStrategyInput): Promise<Deliverable> => {
+  console.info("--- Creating Value Strategy via Agent ---");
+  try {
+    // Create an Assistant
+    const assistant = await client.beta.assistants.create({
+      name: "Value Strategist",
+      instructions: valueStrategySystemPrompt(input),
+      model: "gpt-4",
+      response_format: zodResponseFormat(DeliverableSchema, "deliverable"),
+      tools: [{ type: "function", function: {
+        name: "generateDeliverable",
+        parameters: zodToJsonSchema(DeliverableSchema)
+      }}]
     });
+
+    // Create a Thread
+    const thread = await client.beta.threads.create();
+
+    // Run the Assistant and wait for completion
+    const run = await client.beta.threads.runs.create(thread.id, {
+      assistant_id: assistant.id
+    });
+
+    // Wait for completion with proper status handling
+    const completedRun = await waitForRunCompletion(client, thread.id, run.id);
     
-    // Verify the strategy structure matches the schema
-    expect(() => ValueStrategySchema.parse(strategy.deliverableContent)).not.toThrow();
+    // Get the messages
+    const messages = await client.beta.threads.messages.list(thread.id);
+    const lastMessage = messages.data[0];
 
-    // Verify required sections
-    expect(strategy.deliverableContent.sections.valueProposition).toBeDefined();
-    expect(strategy.deliverableContent.sections.profitProposition).toBeDefined();
-    expect(strategy.deliverableContent.sections.peopleProposition).toBeDefined();
-    expect(strategy.deliverableContent.sections.coreBenefit).toBeDefined();
-    expect(strategy.deliverableContent.sections.coreFeature).toBeDefined();
-    expect(strategy.deliverableContent.sections.solutionOverview).toBeDefined();
-    expect(strategy.deliverableContent.sections.benefitBreakdown).toBeDefined();
-    expect(strategy.deliverableContent.sections.firstOrder).toBeDefined();
-    expect(strategy.deliverableContent.sections.secondOrder).toBeDefined();
-  }, 100000);
+    if (!lastMessage.content || lastMessage.content.length === 0) {
+      throw new Error("No content generated");
+    }
+
+    const textContent = lastMessage.content.find(c => c.type === 'text');
+    if (!textContent) {
+      throw new Error("No text content found");
+    }
+
+    const content = JSON.parse(textContent.text.value);
+    const validatedContent = await DeliverableSchema.parseAsync(content);
+    
+    // Cleanup
+    await client.beta.assistants.del(assistant.id);
+    await client.beta.threads.del(thread.id);
+
+    return validatedContent;
+  } catch (error) {
+    console.error('Error generating value strategy:', error);
+    throw error;
+  }
+};
+
+async function waitForRunCompletion(client: OpenAI, threadId: string, runId: string) {
+  while (true) {
+    const run = await client.beta.threads.runs.retrieve(threadId, runId);
+    
+    switch (run.status) {
+      case 'completed':
+        return run;
+      case 'failed':
+      case 'cancelled':
+      case 'expired':
+        throw new Error(`Run ended with status: ${run.status}`);
+      case 'requires_action':
+        if (run.required_action?.type === 'submit_tool_outputs') {
+          const toolCall = run.required_action.submit_tool_outputs.tool_calls[0];
+          const functionArgs = JSON.parse(toolCall.function.arguments);
+          await client.beta.threads.runs.submitToolOutputs(threadId, runId, {
+            tool_outputs: [{
+              tool_call_id: toolCall.id,
+              output: JSON.stringify(functionArgs)
+            }]
+          });
+        }
+        break;
+      default:
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+}
+
+export const runValueStrategy = withRetry(createValueStrategy, {
+  retries: 3,
+  delay: 1000,
+  onRetry: (error: Error) => console.warn('Retrying value strategy generation due to error:', error)
 });
 ```
 
-#### API Testing
+This completes the implementation of the Value Strategist agent. The agent will now:
+1. Accept user input through the UI (business idea, target market, and competitors)
+2. Validate and process the request through the API
+3. Generate a comprehensive value specification using OpenAI
+4. Store the deliverable in the database
+5. Return the result to the user
 
-Create an API-level test to verify the end-to-end flow:
-
-```typescript
-// packages/core/tests/api-tests/one-page-services.test.ts
-import { OrderResponseBody } from '@orchestrator/metadata/http-responses.schema';
-
-const API_URL = process.env.API_URL;
-const ACCESS_TOKEN = process.env.ACCESS_TOKEN;
-
-describe('One Page Services API Tests', () => {
-  const headers = {
-    'Authorization': `Bearer ${ACCESS_TOKEN}`,
-    'Content-Type': 'application/json',
-  };
-
-  test('User should be able to request one-page value strategy', async () => {
-    const testInput = {
-      deliverableName: "value strategy test",
-      problem: 'Inefficient team communication',
-      applicationIdea: 'Team chat platform',
-      idealCustomer: 'Remote tech teams',
-      solution: 'AI-powered chat solution'
-    };
-
-    const response = await fetch(`${API_URL}/value-strategy`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(testInput),
-    });
-
-    expect(response.status).toBe(201);
-    const data = await response.json() as OrderResponseBody;
-    expect(data).toHaveProperty('orderId');
-  });
-});
-```
-
-To run the tests:
-
-1. Start the development environment:
-```bash
-# Start the dashboard
-cd agentic-dashboard-template
-yarn dev
-
-# Start the API in sandbox mode
-cd agentic-api-template
-yarn sst dev --stage sandbox
-```
-
-2. Run the tests:
-```bash
-cd agentic-api-template/packages/core
-
-# Run unit tests
-yarn test agent-tests/value-strategist
-
-# Run API tests
-yarn test api-tests/one-page-services
-```
-
-The testing strategy ensures:
-- Unit tests verify the agent's core logic and output structure
-- API tests confirm the end-to-end request flow
-- Schema validation checks the output format
-- Authentication and authorization are properly tested
-- Error cases are handled appropriately
-
-Your Value Strategist agent is now ready to help users create comprehensive value specifications for their business ideas!
+Remember to:
+- Test each component thoroughly
+- Handle errors appropriately
+- Follow the AMU pattern for clean architecture
+- Use proper typing and validation
+- Document your code
+- Add appropriate logging
+- Follow security best practices
