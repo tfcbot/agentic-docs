@@ -17,51 +17,84 @@
   },
   "tabs": [
     {
-      "name": "API Reference",
-      "url": "api-reference"
+      "name": "Cloud",
+      "url": "cloud"
+    },
+    {
+      "name": "Self Hosting",
+      "url": "self-hosting"
     }
   ],
   "anchors": [],
   "navigation": [
     {
-      "group": "Start Here",
+      "group": "Cloud Platform",
       "pages": [
-        "introduction",
-        "quickstart"
+        "cloud/index",
+        "cloud/getting-started",
+        "cloud/credits",
+        "cloud/billing"
       ]
     },
     {
-      "group": "Concepts",
+      "group": "Teams",
       "pages": [
-        "concepts/architecture",
-        "concepts/amu-pattern",
-        "concepts/saas-identity",
-        "concepts/git-flow"
+        "cloud/teams/market-research",
+        "cloud/teams/youtube-marketing",
+        "cloud/teams/tech"
+      ]
+    },
+    {
+      "group": "Support",
+      "pages": [
+        "cloud/support"
+      ]
+    },
+    {
+      "group": "Self Hosting",
+      "pages": [
+        "self-hosting/index",
+        "self-hosting/introduction",
+        "self-hosting/quickstart"
+      ]
+    },
+    {
+      "group": "Core Concepts",
+      "pages": [
+        "self-hosting/concepts/architecture",
+        "self-hosting/concepts/amu-pattern",
+        "self-hosting/concepts/saas-identity"
       ]
     },
     {
       "group": "Templates",
       "pages": [
-        "templates/api-template",
-        "templates/dashboard-template",
-        "templates/landing-template"
+        "self-hosting/templates/api-template",
+        "self-hosting/templates/dashboard-template",
+        "self-hosting/templates/landing-template"
       ]
     },
     {
-      "group": "Guides",
+      "group": "Deployment",
       "pages": [
-        "guides/setup-webhooks",
-        "guides/add-your-custom-domain",
-        "guides/automate-deployments",
-        "guides/adding-agents"
+        "self-hosting/guides/setup-webhooks",
+        "self-hosting/guides/add-your-custom-domain",
+        "self-hosting/guides/automate-deployments",
+        "self-hosting/guides/adding-agents"
       ]
     },
     {
       "group": "Example Agents",
       "pages": [
-        "examples/value-strategist",
-        "examples/tech-strategist",
-        "examples/growth-strategist"
+        "self-hosting/examples/value-strategist",
+        "self-hosting/examples/tech-strategist",
+        "self-hosting/examples/growth-strategist"
+      ]
+    },
+    {
+      "group": "Licenses and Privacy",
+      "pages": [
+        "self-hosting/licenses-and-privacy"
       ]
     }
   ],
