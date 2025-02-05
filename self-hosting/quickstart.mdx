@@ -1,11 +1,11 @@
 ---
 title: 'Quickstart'
-description: 'Setting up your Sandbox Environment'
+description: 'Setting up your Development Environment'
 ---
 
-This guide will walk you through the process of setting up your sandbox Agentic Team OS.  
+This guide will walk you through the process of setting up your development Agentic Team OS.  
 
-Having a sandbox environment is a great way to test your ideas without having to worry about breaking things. 
+Having a development environment is a great way to test your ideas without having to worry about breaking things. 
 
 The templates come with example agents you can use as a baseline for your own agents.
 
@@ -14,7 +14,7 @@ The templates come with example agents you can use as a baseline for your own ag
 - Code Editor (Cursor AI, Windsurf, VSCode, etc)
 - Node.js 20+
 - Package Manager (Yarn, NPM, PNPM, etc)
-- Dedicated Sandbox AWS Account with AWS SSO
+- Dedicated Development AWS Account with AWS SSO
 - Stripe Account 
 - Clerk Account 
 - Unkey Account 
@@ -52,11 +52,10 @@ Go with cloning over forking because you should be making your own significant c
 
 Future updates will then not break any custom changes you make. 
 
-In each repo create a `.env.sandbox` file and add the following variables:
+In each repo create a `.env.dev` file and add the following variables:
 
 ### Dashboard
 ```bash
-
 # sst Secrets
 baseDomain=<your-base-domain>
 clerkSecretKey=<your-clerk-secret-key>
@@ -109,9 +108,9 @@ You will need to set up two webhooks to enable the billing system to work.
 
 The endpoint is already preconfigured in the API template as `/checkout`. 
 
-Create a webhook for the `checkout-session.completed` event using the url `https://sandbox-api.yourdomain.com/checkout/v1`. 
+Create a webhook for the `checkout-session.completed` event using the url `https://dev-api.yourdomain.com/checkout/v1`. 
 
-Next, update your `.env.sandbox` file with the correct values for stripe.
+Next, update your `.env.dev` file with the correct values for stripe.
 
 
 ### Clerk
@@ -120,9 +119,9 @@ In clerk you will need to create a webhook for the `user.created` event.
 
 The endpoint is already preconfigured in the API template as `/signup-webhook`.
 
-Create a webhook for the `user.created` event using the url `https://sandbox-api.yourdomain.com/signup-webhook`.
+Create a webhook for the `user.created` event using the url `https://dev-api.yourdomain.com/signup-webhook`.
 
-Once complete, you will need to update `.env.sandbox` with the correct values for clerk and stripe. 
+Once complete, you will need to update `.env.dev` with the correct values for clerk and stripe. 
 
 For more step-by-step instructions on setting up your webhooks, head over to the [Setup Webhooks](/guides/setup-webhooks) guide.
 
@@ -136,7 +135,7 @@ With Unkey you can dictate the number of credits you want to give to your users 
 
 You will need to create a new API with unkey. 
 
-Then update your `.env.sandbox` file with the root key and api id.
+Then update your `.env.dev` file with the root key and api id.
 
 ```bash
 UnkeyRootKey=<your-unkey-root-key>
@@ -156,28 +155,28 @@ To set up your custom domain, head over to the [Cloudflare Guide](/guides/add-cu
   If you don't have a custom domain the template will fail to deploy. 
 </Note>
 
-Once you have your custom domain set up, you will need to update the `BASE_DOMAIN` variable in the `.env.sandbox` file in the API template.
+Once you have your custom domain set up, you will need to update the `BASE_DOMAIN` variable in the `.env.dev` file in the API template.
 
 ## 5. Load Your Secrets
 
-Next you will need to load your secrets into AWS into the sandbox stage. 
+Next you will need to load your secrets into AWS into the dev stage. 
 
 For example to load your secrets for the api: 
 
 ```bash
 cd api
-sst secrets load .env.sandbox --stage sandbox
+sst secrets load .env.dev --stage dev
 ```
 
 Do this for the both the API and Dashboard repositories.
 
-## 5. Start your sandbox environment
+## 5. Start your development environment
 
 1. Start the API:
 ```bash
 cd api
 yarn install
-yarn sst dev --stage sandbox
+yarn sst dev --stage dev
 ```
 This will bring up your API and start listening for events from Stripe and Clerk.
 
@@ -192,7 +191,7 @@ For now you can just run the dashboard locally. It will still be able to talk to
 
 The URLs will be:
 - Dashboard: http://localhost:3000
-- API: http://sandbox-api.yourdomain.com
+- API: http://dev-api.yourdomain.com
 
 Navigate to the dashboard, sign up, and you should be able to see the example agents and use them.  
 
