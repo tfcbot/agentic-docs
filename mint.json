@@ -32,21 +32,7 @@
       "pages": [
         "cloud/index",
         "cloud/getting-started",
-        "cloud/credits",
-        "cloud/billing"
-      ]
-    },
-    {
-      "group": "Teams",
-      "pages": [
-        "cloud/teams/market-research",
-        "cloud/teams/youtube-marketing",
-        "cloud/teams/tech"
-      ]
-    },
-    {
-      "group": "Support",
-      "pages": [
+        "cloud/deliverables",
         "cloud/support"
       ]
     },
