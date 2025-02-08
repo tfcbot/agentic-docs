@@ -40,7 +40,6 @@
       "group": "Self Hosting",
       "pages": [
         "self-hosting/index",
-        "self-hosting/introduction",
         "self-hosting/quickstart"
       ]
     },
@@ -61,7 +60,7 @@
       ]
     },
     {
-      "group": "Deployment",
+      "group": "Guides",
       "pages": [
         "self-hosting/guides/setup-webhooks",
         "self-hosting/guides/add-your-custom-domain",
