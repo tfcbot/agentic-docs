@@ -111,7 +111,7 @@ You will need to set up two webhooks to enable the billing system to work.
 
 The endpoint is already preconfigured in the API template as `/checkout`. 
 
-Create a webhook for the `checkout-session.completed` event using the url `https://dev-api.yourdomain.com/checkout/v1`. 
+Create a webhook for the `checkout-session.completed` event using the url `https://dev-api.yourdomain.com/v1/checkout`. 
 
 Next, update your `.env.dev` file with the correct values for stripe.
 
@@ -122,7 +122,7 @@ In clerk you will need to create a webhook for the `user.created` event.
 
 The endpoint is already preconfigured in the API template as `/signup-webhook`.
 
-Create a webhook for the `user.created` event using the url `https://dev-api.yourdomain.com/signup-webhook`.
+Create a webhook for the `user.created` event using the url `https://dev-api.yourdomain.com/v1/signup-webhook`.
 
 Once complete, you will need to update `.env.dev` with the correct values for clerk and stripe. 
 
