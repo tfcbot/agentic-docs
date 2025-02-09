@@ -126,26 +126,7 @@ Create a webhook for the `user.created` event using the url `https://dev-api.you
 
 Once complete, you will need to update `.env.dev` with the correct values for clerk and stripe. 
 
-For more step-by-step instructions on setting up your webhooks, head over to the [Setup Webhooks](/guides/setup-webhooks) guide.
-
-## 3. Set up API Credits
-
-### Unkey
-
-The billing system also needs Unkey to be set up. 
-
-With Unkey you can dictate the number of credits you want to give to your users after they make a purchase and any other API limits you want to set.
-
-You will need to create a new API with unkey. 
-
-Then update your `.env.dev` file with the root key and api id.
-
-```bash
-UnkeyRootKey=<your-unkey-root-key>
-UnkeyApiId=<your-unkey-api-id>
-```
-
-For more details on how to set up Unkey, head over to the [Unkey Docs](https://www.unkey.com/docs/quickstart/onboarding/onboarding-api).
+For more step-by-step instructions on setting up your webhooks, head over to the [Setup Webhooks](/self-hosting/guides/setup-webhooks) guide.
 
 
 ## 4. Setup your custom domain
@@ -160,43 +141,57 @@ To set up your custom domain, head over to the [Cloudflare Guide](/guides/add-cu
 
 Once you have your custom domain set up, you will need to update the `BASE_DOMAIN` variable in the `.env.dev` file in the API template.
 
-## 5. Load Your Secrets
 
-Next you will need to load your secrets into AWS into the dev stage. 
+## 5. Start your development environment for the API
 
-For example to load your secrets for the api: 
+<Steps>
+  <Step title="Set AWS Profile">
+    Export your AWS profile for the account you want to deploy to:
+    ```bash
+    export AWS_PROFILE=<your-aws-profile>
+    ```
+  </Step>
 
-```bash
-cd api
-sst secrets load .env.dev --stage dev
-```
+  <Step title="Install API Dependencies">
+    Navigate to the API directory and install dependencies:
+    ```bash
+    cd api
+    yarn install
+    ```
+  </Step>
 
-Do this for the both the API and Dashboard repositories.
+  <Step title="Load Environment Secrets">
+    Load your development environment secrets:
+    ```bash
+    yarn sst secrets load .env.dev --stage dev
+    ```
+  </Step>
 
-## 5. Start your development environment
+  <Step title="Start Development API">
+    Start the API in development mode:
+    ```bash
+    yarn sst dev --stage dev
+    ```
+    This will start your API and begin listening for Stripe and Clerk events. The first deployment may take a few minutes as it creates DNS records.
+  </Step>
 
-1. Start the API:
-```bash
-cd api
-yarn install
-yarn sst dev --stage dev
-```
-This will bring up your API and start listening for events from Stripe and Clerk.
+  <Step title="Start Dashboard">
+    In a separate terminal, start the dashboard:
+    ```bash
+    cd dashboard
+    yarn dev
+    ```
+    The dashboard will run locally but can communicate with your hosted API.
+  </Step>
 
-The first time you run this it will take a few minutes to start because it needs to create DNS records. 
+  <Step title="Access Your Applications">
+    Your applications will be available at:
+    - Dashboard: http://localhost:3000
+    - API: http://dev-api.yourdomain.com
 
-2. Start the Dashboard:
-```bash
-cd dashboard
-yarn dev
-```
-For now you can just run the dashboard locally. It will still be able to talk to your hosted API. 
-
-The URLs will be:
-- Dashboard: http://localhost:3000
-- API: http://dev-api.yourdomain.com
-
-Navigate to the dashboard, sign up, and you should be able to see the example agents and use them. 
+    Sign up through the dashboard to start using the example agents.
+  </Step>
+</Steps>
 
 ## Next Steps
 
