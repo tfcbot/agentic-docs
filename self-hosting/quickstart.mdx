@@ -14,7 +14,7 @@ If you want to try the hosted version of Agentic Team OS, you can sign up for [A
 ## What prerequisites do you need? 
 
 - Code Editor (Cursor AI, Windsurf, VSCode, etc)
-- Linux/Mac OS/WSL
+- MacOS or Linux Based OS
 - Node.js 20+
 - Package Manager (Yarn, NPM, PNPM, etc)
 - Dedicated Development AWS Account with AWS SSO
@@ -42,7 +42,7 @@ mkdir my-agentic-project
 cd my-agentic-project
 ```
 
-## 2. Create new repositories from the templates and clone them into your project directory:
+## 2. Set up your Repos
 
 Create a new repository from the API Template: [API Template](https://github.com/new?template_name=agentic-api-template&template_owner=tfcbot)
 
@@ -61,6 +61,33 @@ gh repo clone <your-api-repo-name>
 ```
 
 Each repo will have a `.env.template` file that you can use to set your environment variables. Change the `.env.template` file to `.env.dev` and update the variables:
+
+Also update the `sst.config.ts` files with the an app name. 
+
+```bash
+# sst.config.ts
+export default $config({
+  app(input) {
+    return {
+      name: "<YOUR-APP-NAME>",
+      removal: input?.stage === "prod" ? "retain" : "remove",
+      
+      home: "aws",
+      providers: { aws: {
+        region: "us-east-1",
+      }, "aws-native": {
+        region: "us-east-1",
+      }, 
+      cloudflare: {
+        version: "5.42.0",
+        apiToken: process.env.CLOUDFLARE_API_TOKEN,
+      }
+    },
+    };
+  },
+  ... rest of the config
+});
+```
 
 ### Dashboard
 ```bash
