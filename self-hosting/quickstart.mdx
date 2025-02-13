@@ -24,13 +24,14 @@ If you want to try the hosted version of Agentic Team OS, you can sign up for [A
 - Unkey Account 
 - Cloudflare Account
 
+Head over to [account setups](/self-hosting/guides/account-setups) for help with prerequisites.
 
 Time to Complete: 30 mins - 2 hrs
 
 
 <Note>
   Using Agentic Team OS requires an intermediate level of experience with programming and cloud development. 
-  If you need help getting started or have questions, join the [Community](https://www.skool.com/agent-toolkit) where you can get more access to more support and resources to get you up to speed.
+  If you need help getting started or have questions, join the [Community](https://hi.switchy.io/agent-entrepreneur) where you can get more access to more support and resources to get you up to speed.
 </Note>
 
 
@@ -41,22 +42,25 @@ mkdir my-agentic-project
 cd my-agentic-project
 ```
 
-## 2. Clone the template repositories:
+## 2. Create new repositories from the templates and clone them into your project directory:
+
+Create a new repository from the API Template: [API Template](https://github.com/new?template_name=agentic-api-template&template_owner=tfcbot)
+
+Create a new repository from the Dashboard Template: [Dashboard Template](https://github.com/new?template_name=agentic-dashboard-template&template_owner=tfcbot)
 
 ```bash
 # Clone Dashboard Template
-gh repo clone tfcbot/agentic-dashboard-template dashboard
+cd my-agentic-project
+gh repo clone <your-dashboard-repo-name>
 ```
 
 ```bash
 # Clone API Template
-gh repo clone tfcbot/agentic-api-template api
+cd my-agentic-project
+gh repo clone <your-api-repo-name>
 ```
-Go with cloning over forking because you should be making your own significant changes to these templates. 
 
-Future updates will then not break any custom changes you make. 
-
-In each repo create a `.env.dev` file and add the following variables:
+Each repo will have a `.env.template` file that you can use to set your environment variables. Change the `.env.template` file to `.env.dev` and update the variables:
 
 ### Dashboard
 ```bash
@@ -103,46 +107,9 @@ BASE_DOMAIN=<your-base-domain>
 </Note>
 
 
-## 3. Configure Your Webhooks
-
-You will need to set up two webhooks to enable the billing system to work. 
-
-### Stripe
-
-The endpoint is already preconfigured in the API template as `/checkout`. 
-
-Create a webhook for the `checkout-session.completed` event using the url `https://dev-api.yourdomain.com/v1/checkout`. 
-
-Next, update your `.env.dev` file with the correct values for stripe.
 
 
-### Clerk
-
-In clerk you will need to create a webhook for the `user.created` event. 
-
-The endpoint is already preconfigured in the API template as `/signup-webhook`.
-
-Create a webhook for the `user.created` event using the url `https://dev-api.yourdomain.com/v1/signup-webhook`.
-
-Once complete, you will need to update `.env.dev` with the correct values for clerk and stripe. 
-
-For more step-by-step instructions on setting up your webhooks, head over to the [Setup Webhooks](/self-hosting/guides/setup-webhooks) guide.
-
-
-## 4. Setup your custom domain
-
-Cloudflare is used to manage your DNS and SSL certificates. It also provides security protections for you web app and API.
-
-To set up your custom domain, head over to the [Cloudflare Guide](/guides/add-custom-domain).
-
-<Note>
-  If you don't have a custom domain the template will fail to deploy. 
-</Note>
-
-Once you have your custom domain set up, you will need to update the `BASE_DOMAIN` variable in the `.env.dev` file in the API template.
-
-
-## 5. Start your development environment
+## 3. Start your development environment
 
 <Steps>
   <Step title="Set AWS Profile">
