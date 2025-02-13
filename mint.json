@@ -62,6 +62,7 @@
     {
       "group": "Guides",
       "pages": [
+        "self-hosting/guides/account-setups",
         "self-hosting/guides/setup-webhooks",
         "self-hosting/guides/add-your-custom-domain",
         "self-hosting/guides/automate-deployments",
