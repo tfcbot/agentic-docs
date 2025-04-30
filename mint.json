@@ -54,9 +54,7 @@
     {
       "group": "Templates",
       "pages": [
-        "self-hosting/templates/api-template",
-        "self-hosting/templates/dashboard-template",
-        "self-hosting/templates/landing-template"
+        "self-hosting/templates/fs-template"
       ]
     },
     {
@@ -72,9 +70,7 @@
     {
       "group": "Example Agents",
       "pages": [
-        "self-hosting/examples/value-strategist",
-        "self-hosting/examples/tech-strategist",
-        "self-hosting/examples/growth-strategist"
+        "self-hosting/examples/research-agent"
       ]
     },
     {
