@@ -128,7 +128,7 @@ import { Resource } from "sst";
 import { withRetry } from "@utils/tools/retry";
 
 const client = new OpenAI({
-  apiKey: Resource.OpenAiApiKey.value
+  apiKey: Resource.OpenaiApiKey.value
 });
 
 export const executeYourAgent = async (input: RequestYourAgentInput): Promise<YourAgentOutput> => {
@@ -595,3 +595,4 @@ export default function YourAgentForm() {
 - [Understand the Hexagonal Architecture](/self-hosting/concepts/architecture)
 - [Explore the Full-Stack Template](/self-hosting/templates/fs-template)
 - [Automate Your Deployment](/self-hosting/guides/automate-deployments)
+

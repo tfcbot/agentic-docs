@@ -129,7 +129,7 @@ When implementing a new agent, you'll follow this standardized directory structu
 <YOUR-AGENT-NAME>/
 ├── adapters/
 │   ├── primary/    (input adapters - handle incoming requests)
-│   │   ├── request-<YOUR-AGENT-NAME>.adapter.ts
+│   │   ├���─ request-<YOUR-AGENT-NAME>.adapter.ts
 │   │   └── get-<YOUR-AGENT-NAME>.adapter.ts
 │   └── secondary/  (output adapters - handle outgoing operations)
 │       ├── openai.adapter.ts
@@ -227,23 +227,23 @@ Create a `.env.local` file in the project root. Note that SST uses SNAKE_CASE fo
 
 ```bash
 # AWS/SST Configuration
-AWS_PROFILE=my-profile
+AwsProfile=my-profile
 
 # Authentication
-CLERK_SECRET_KEY=<clerk_secret_key>
-CLERK_PUBLISHABLE_KEY=<clerk_publishable_key>
+ClerkSecretKey=<clerk_secret_key>
+ClerkPublishableKey=<clerk_publishable_key>
 
 # AI Services
-OPENAI_API_KEY=<openai_api_key>
+OpenaiApiKey=<openai_api_key>
 
 # Payments
-STRIPE_SECRET_KEY=<stripe_secret_key>
-STRIPE_PUBLISHABLE_KEY=<stripe_publishable_key>
-STRIPE_WEBHOOK_SECRET=<stripe_webhook_secret>
+StripeSecretKey=<stripe_secret_key>
+StripePublishableKey=<stripe_publishable_key>
+StripeWebhookSecret=<stripe_webhook_secret>
 
 # Domain Configuration
-BASE_DOMAIN=<your-domain.com>
-CLOUDFLARE_API_TOKEN=<cloudflare_token>
+BaseDomain=<your-domain.com>
+CloudflareApiToken=<cloudflare_token>
 ```
 
 ## Development Workflow
