@@ -17,6 +17,8 @@ You can find the full source code for the FS template [here](https://github.com/
 
 ## Project Structure
 
+The FS template follows a monorepo structure with packages for core, functions, frontend, metadata, and utils:
+
 ```bash
 fs-template/
 ├── docs/                           # Documentation
@@ -28,6 +30,11 @@ fs-template/
 │   ├── web.ts                      # Frontend and API configurations
 │   ├── orchestrator.ts             # Event processing and queues
 │   └── secrets.ts                  # Secret management
+├── lib/                            # AWS service wrappers
+│   ├── dynamodb.ts                 # DynamoDB client wrapper
+│   ├── s3.ts                       # S3 client wrapper
+│   ├── sqs.ts                      # SQS client wrapper
+│   └── ...                         # Other AWS service wrappers
 ├── packages/                       # Core packages directory
 │   ├── core/                       # Core business logic
 │   │   └── src/
@@ -47,6 +54,67 @@ fs-template/
 │   └── utils/                      # Shared utilities
 │       └── src/                    # Utility source code
 └── sst.config.ts                   # SST configuration
+```
+
+## The lib/ Directory
+
+The `lib/` directory contains wrappers around AWS services that provide consistent patterns and reduce boilerplate code. These wrappers offer:
+
+1. **Simplified Interfaces**: Clean, typed interfaces for interacting with AWS services
+2. **Error Handling**: Consistent error handling patterns across all AWS interactions
+3. **Retry Logic**: Built-in retry mechanisms for transient failures
+4. **Logging**: Standardized logging for all AWS operations
+5. **Testing**: Easier mocking for unit and integration tests
+
+Example of the DynamoDB wrapper:
+
+```typescript
+// lib/dynamodb.ts
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+
+export class DynamoDBService {
+  private client: DynamoDBDocumentClient;
+
+  constructor() {
+    const dynamoClient = new DynamoDBClient({});
+    this.client = DynamoDBDocumentClient.from(dynamoClient);
+  }
+
+  async getItem<T>(tableName: string, key: Record<string, any>): Promise<T | null> {
+    try {
+      const command = new GetCommand({
+        TableName: tableName,
+        Key: key,
+      });
+      
+      const response = await this.client.send(command);
+      return (response.Item as T) || null;
+    } catch (error) {
+      console.error('Error getting item from DynamoDB:', error);
+      throw error;
+    }
+  }
+
+  async putItem(tableName: string, item: Record<string, any>): Promise<void> {
+    try {
+      const command = new PutCommand({
+        TableName: tableName,
+        Item: item,
+      });
+      
+      await this.client.send(command);
+    } catch (error) {
+      console.error('Error putting item to DynamoDB:', error);
+      throw error;
+    }
+  }
+
+  // Additional methods for query, scan, update, delete, etc.
+}
+
+// Export a singleton instance
+export const dynamoDBService = new DynamoDBService();
 ```
 
 ## Hexagonal Architecture
@@ -142,56 +210,28 @@ api.route("GET /personas", {
 })
 ```
 
-## Frontend Integration
-
-The frontend package is a React application that communicates with the backend API:
-
-```typescript
-// packages/frontend/src/api/agents.ts
-import { AgentResponse } from '@/types';
-
-export const requestAgent = async (
-  agentId: string, 
-  input: Record<string, any>
-): Promise<AgentResponse> => {
-  const response = await fetch(`/api/agents/${agentId}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(input),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to request agent');
-  }
-  
-  return response.json();
-};
-```
-
 ## Environment Configuration
 
 Create a `.env.local` file in the project root:
 
 ```bash
 # AWS/SST Configuration
-AWS_PROFILE=my-profile
+awsProfile=my-profile
 
 # Authentication
-CLERK_SECRET_KEY=<clerk_secret_key>
-CLERK_PUBLISHABLE_KEY=<clerk_publishable_key>
+clerkSecretKey=<clerk_secret_key>
+clerkPublishableKey=<clerk_publishable_key>
 
 # AI Services
-OPENAI_API_KEY=<openai_api_key>
+openaiApiKey=<openai_api_key>
 
 # Payments
-STRIPE_SECRET_KEY=<stripe_secret_key>
-STRIPE_PUBLISHABLE_KEY=<stripe_publishable_key>
-STRIPE_WEBHOOK_SECRET=<stripe_webhook_secret>
+stripeSecretKey=<stripe_secret_key>
+stripePublishableKey=<stripe_publishable_key>
+stripeWebhookSecret=<stripe_webhook_secret>
 
 # Domain Configuration
-BASE_DOMAIN=<your-domain.com>
+baseDomain=<your-domain.com>
 CLOUDFLARE_API_TOKEN=<cloudflare_token>
 ```
 
@@ -216,17 +256,6 @@ CLOUDFLARE_API_TOKEN=<cloudflare_token>
    ```bash
    bun sst deploy --stage prod
    ```
-
-## Migrating from Legacy Templates
-
-If you're currently using the separate API, Dashboard, or Landing templates, consider migrating to the unified FS template for a more streamlined development experience. The migration process involves:
-
-1. Setting up the FS template repository
-2. Transferring your custom agents to the new hexagonal architecture
-3. Migrating your frontend customizations
-4. Updating your infrastructure configuration
-
-For detailed migration steps, refer to the [Migration Guide](/self-hosting/guides/migration-guide).
 
 ## Next Steps
 
