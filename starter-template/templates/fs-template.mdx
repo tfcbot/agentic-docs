@@ -1,0 +1,316 @@
+---
+title: 'Full-Stack Template'
+description: 'Unified template for building your Agentic SaaS with a hexagonal architecture'
+---
+
+The Full-Stack (FS) Template provides a unified approach to building your Agentic SaaS with a clean, hexagonal architecture. This template offers everything you need to create, deploy, and monetize your own agent business.
+
+You can find the full source code for the FS template [here](https://github.com/tfcbot/fs-template).
+
+## Key Benefits
+
+- **Unified Architecture**: Single repository for frontend, backend, and infrastructure
+- **Hexagonal Design**: Clear separation of concerns with ports and adapters pattern
+- **Simplified Agent Creation**: Standardized approach to building your AI agent
+- **Consistent Development Experience**: Unified tooling and development workflow
+- **Streamlined Deployment**: Single deployment process for all components
+- **Monetization Ready**: Built-in Stripe integration for immediate business launch
+
+## Project Structure
+
+The FS template follows a monorepo structure with packages for core, functions, frontend, metadata, and utils:
+
+```bash
+fs-template/
+├── docs/                           # Documentation
+│   ├── add_new_agents.md           # Guide for adding a new agent
+│   ├── auth.md                     # Authentication documentation
+│   └── ...                         # Other documentation
+├── infra/                          # Infrastructure definitions
+│   ├── database.ts                 # DynamoDB tables
+│   ├── web.ts                      # Frontend and API configurations
+│   ├── orchestrator.ts             # Event processing and queues
+│   └── secrets.ts                  # Secret management
+├── lib/                            # AWS service wrappers
+│   ├── dynamodb.ts                 # DynamoDB client wrapper
+│   ├── s3.ts                       # S3 client wrapper
+│   ├── sqs.ts                      # SQS client wrapper
+│   └── ...                         # Other AWS service wrappers
+├── packages/                       # Core packages directory
+│   ├── core/                       # Core business logic
+│   │   └── src/
+│   │       ├── agent/              # Example agent module (hexagonal architecture)
+│   │       │   ├── adapters/       # Input/output adapters
+│   │       │   │   ├── primary/    # Input adapters
+│   │       │   │   └── secondary/  # Output adapters
+│   │       │   └── usecase/        # Business logic
+│   ├── frontend/                   # React frontend application
+│   │   ├── public/                 # Static assets
+│   │   └── src/                    # Frontend source code
+│   ├── functions/                  # Lambda function handlers
+│   │   └── src/                    # Function source code
+│   ├── metadata/                   # Shared schemas and types
+│   │   └── agent/                  # Agent-specific schemas
+│   └── utils/                      # Shared utilities
+│       └── src/                    # Utility source code
+└── sst.config.ts                   # SST configuration
+```
+
+## The lib/ Directory
+
+The `lib/` directory contains wrappers around AWS services that provide consistent patterns and reduce boilerplate code. These wrappers offer:
+
+1. **Simplified Interfaces**: Clean, typed interfaces for interacting with AWS services
+2. **Error Handling**: Consistent error handling patterns across all AWS interactions
+3. **Retry Logic**: Built-in retry mechanisms for transient failures
+4. **Logging**: Standardized logging for all AWS operations
+5. **Testing**: Easier mocking for unit and integration tests
+
+Example of the DynamoDB wrapper:
+
+```typescript
+// lib/dynamodb.ts
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+
+export class DynamoDBService {
+  private client: DynamoDBDocumentClient;
+
+  constructor() {
+    const dynamoClient = new DynamoDBClient({});
+    this.client = DynamoDBDocumentClient.from(dynamoClient);
+  }
+
+  async getItem<T>(tableName: string, key: Record<string, any>): Promise<T | null> {
+    try {
+      const command = new GetCommand({
+        TableName: tableName,
+        Key: key,
+      });
+      
+      const response = await this.client.send(command);
+      return (response.Item as T) || null;
+    } catch (error) {
+      console.error('Error getting item from DynamoDB:', error);
+      throw error;
+    }
+  }
+
+  async putItem(tableName: string, item: Record<string, any>): Promise<void> {
+    try {
+      const command = new PutCommand({
+        TableName: tableName,
+        Item: item,
+      });
+      
+      await this.client.send(command);
+    } catch (error) {
+      console.error('Error putting item to DynamoDB:', error);
+      throw error;
+    }
+  }
+
+  // Additional methods for query, scan, update, delete, etc.
+}
+
+// Export a singleton instance
+export const dynamoDBService = new DynamoDBService();
+```
+
+## Hexagonal Architecture
+
+The FS template implements a hexagonal architecture (also known as ports and adapters) for agent modules. This architecture separates the core business logic from external concerns, making the system more maintainable, testable, and adaptable to change.
+
+<img src="/images/hexagonal-architecture.png" alt="Hexagonal Architecture Diagram" className="w-full rounded-lg" />
+
+### Key Components
+
+1. **Primary Adapters (Input)**: Handle incoming requests and transform them into a format the use cases can process
+   - HTTP Request Adapters
+   - Event Handlers
+
+2. **Use Cases (Business Logic)**: Contain the core business logic independent of external systems
+   - Implement domain-specific rules
+   - Orchestrate the flow of data
+
+3. **Secondary Adapters (Output)**: Handle communication with external systems
+   - AI Provider Adapters (OpenAI, etc.)
+   - Database Adapters
+   - Third-party Service Adapters
+
+## Core Library (lib/)
+
+The `lib/` directory contains reusable factory patterns and base classes that provide standardized implementations for common functionality across the application. These components abstract away the complexity of working directly with AWS services and provide a consistent interface for your application.
+
+### Key Components in lib/
+
+1. **dynamodb-repository.factory.ts**: Factory for creating DynamoDB repositories with standardized CRUD operations
+2. **lambda-adapter.factory.ts**: Factory for creating Lambda adapters with consistent request handling and error management
+3. **sqs-adapter.factory.ts**: Factory for creating SQS adapters for message processing
+4. **topic-publisher.adapter.ts**: Adapter for publishing messages to SNS topics
+5. **transaction.util.ts**: Utilities for handling DynamoDB transactions
+
+### Benefits of the lib/ Abstractions
+
+- **Consistent Patterns**: Standardized approach to common operations
+- **Reduced Boilerplate**: Factories eliminate repetitive code
+- **Type Safety**: Strong typing for all operations
+- **Error Handling**: Consistent error handling and logging
+- **Testability**: Easier to mock and test components
+
+### Example: Using the DynamoDB Repository Factory
+
+```typescript
+// Creating a repository for an agent's data
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { YourAgentOutputSchema } from "@metadata/agents/your-agent.schema";
+import { createRepository } from "@lib/dynamodb-repository.factory";
+import { z } from "zod";
+
+// Define the output type
+export type YourAgentOutput = z.infer<typeof YourAgentOutputSchema>;
+
+// Set up DynamoDB client
+const dynamoDbClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+
+// Create and export the repository
+export const YourAgentRepository = createRepository<YourAgentOutput>(dynamoDbClient, {
+  tableName: 'your-agent-table',
+  partitionKey: 'userId',
+  sortKey: 'id',
+  verbose: true
+});
+
+// Now you can use methods like:
+// YourAgentRepository.get(partitionKey, sortKey)
+// YourAgentRepository.put(item)
+// YourAgentRepository.query(keyName, keyValue)
+// YourAgentRepository.update(key, updateExpression, expressionAttributeValues)
+```
+
+## Agent Implementation Pattern
+
+When implementing your AI agent, you'll follow this standardized directory structure:
+
+```
+agent/
+├── adapters/
+│   ├── primary/    (input adapters - handle incoming requests)
+│   │   ├── request-agent.adapter.ts
+│   │   └── get-agent.adapter.ts
+│   └── secondary/  (output adapters - handle outgoing operations)
+│       ├── openai.adapter.ts
+│       └── datastore.adapter.ts
+└── usecase/      (core business logic)
+    └── agent.usecase.ts
+```
+
+## Schema-Driven Development
+
+The FS template uses Zod for schema validation throughout the application:
+
+```typescript
+// In metadata/agent/agent.schema.ts
+import { z } from 'zod';
+
+export const RequestAgentInputSchema = z.object({
+  prompt: z.string(),
+  id: z.string().optional().default(uuidv4()),
+  userId: z.string(),
+  keyId: z.string(),
+});
+
+export const AgentOutputSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  title: z.string(),
+  content: z.string(),
+  status: z.nativeEnum(AgentStatus).default(AgentStatus.PENDING),
+});
+
+export type RequestAgentInput = z.infer<typeof RequestAgentInputSchema>;
+export type AgentOutput = z.infer<typeof AgentOutputSchema>;
+```
+
+## Infrastructure with SST
+
+The FS template uses SST (Serverless Stack) v3 for infrastructure as code:
+
+```typescript
+// infra/database.ts
+export const personaTable = new sst.aws.Dynamo("Persona", {
+    fields: {
+        userId: "string",
+        personaId: "string",
+        personaStatus: "string",
+    },
+    primaryIndex: {hashKey: "personaId"},
+    globalIndexes: {
+        UserIdIndex: { hashKey: "userId" },
+        StatusIndex: { hashKey: "personaStatus" }
+    }
+})
+
+// infra/web.ts
+export const api = new sst.aws.ApiGatewayV2('BackendApi')
+
+api.route("GET /personas", {
+  link: [...apiResources],
+  handler: "./packages/functions/src/agent-runtime.api.getAllUserPersonasHandler",
+})
+```
+
+## Environment Configuration
+
+Create a `.env.local` file in the project root. Note that SST uses SNAKE_CASE for environment variables as per their [documentation](https://sst.dev/docs/environment-variables/#secrets):
+
+```bash
+# AWS/SST Configuration
+awsProfile=my-profile
+
+# Authentication
+clerkSecretKey=<clerk_secret_key>
+clerkPublishableKey=<clerk_publishable_key>
+
+# AI Services
+openaiApiKey=<openai_api_key>
+
+# Payments
+stripeSecretKey=<stripe_secret_key>
+stripePublishableKey=<stripe_publishable_key>
+stripeWebhookSecret=<stripe_webhook_secret>
+
+# Domain Configuration
+baseDomain=<your-domain.com>
+CLOUDFLARE_API_TOKEN=<cloudflare_token>
+```
+
+## Development Workflow
+
+1. **Install Dependencies**:
+   ```bash
+   bun install
+   ```
+
+2. **Start Development Environment**:
+   ```bash
+   bun run dev
+   ```
+
+3. **Deploy to Staging**:
+   ```bash
+   bun sst deploy --stage staging
+   ```
+
+4. **Deploy to Production**:
+   ```bash
+   bun sst deploy --stage prod
+   ```
+
+## Next Steps
+
+- [Add Your Own Agent](/starter-template/guides/adding-agents)
+- [Understanding the Hexagonal Architecture](/starter-template/concepts/architecture)
+- [Deployment and Infrastructure](/starter-template/guides/automate-deployments)
+
