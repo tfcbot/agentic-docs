@@ -21,8 +21,8 @@
       "url": "cloud"
     },
     {
-      "name": "Self Hosting",
-      "url": "self-hosting"
+      "name": "Starter Template",
+      "url": "starter-template"
     }
   ],
   "anchors": [],
@@ -37,50 +37,32 @@
       ]
     },
     {
-      "group": "Self Hosting",
+      "group": "Starter Template",
       "pages": [
-        "self-hosting/index",
-        "self-hosting/quickstart"
+        "starter-template/index",
+        "starter-template/quickstart"
       ]
     },
     {
-      "group": "Core Concepts",
+      "group": "Template",
       "pages": [
-        "self-hosting/concepts/architecture",
-        "self-hosting/concepts/amu-pattern",
-        "self-hosting/concepts/saas-identity"
-      ]
-    },
-    {
-      "group": "Templates",
-      "pages": [
-        "self-hosting/templates/api-template",
-        "self-hosting/templates/dashboard-template",
-        "self-hosting/templates/landing-template"
+        "starter-template/templates/fs-template"
       ]
     },
     {
       "group": "Guides",
       "pages": [
-        "self-hosting/guides/account-setups",
-        "self-hosting/guides/setup-webhooks",
-        "self-hosting/guides/add-your-custom-domain",
-        "self-hosting/guides/automate-deployments",
-        "self-hosting/guides/adding-agents"
-      ]
-    },
-    {
-      "group": "Example Agents",
-      "pages": [
-        "self-hosting/examples/value-strategist",
-        "self-hosting/examples/tech-strategist",
-        "self-hosting/examples/growth-strategist"
+        "starter-template/guides/account-setups",
+        "starter-template/guides/setup-webhooks",
+        "starter-template/guides/add-your-custom-domain",
+        "starter-template/guides/automate-deployments",
+        "starter-template/guides/adding-agents"
       ]
     },
     {
       "group": "Licenses and Privacy",
       "pages": [
-        "self-hosting/licenses-and-privacy"
+        "starter-template/licenses-and-privacy"
       ]
     }
   ],

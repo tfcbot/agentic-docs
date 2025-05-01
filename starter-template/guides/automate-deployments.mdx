@@ -1,0 +1,140 @@
+---
+title: 'Automate Deployments'
+description: 'Configure automated deployments with GitHub and SST'
+---
+
+This guide walks you through setting up automated deployments for your Agentic SaaS applications using [SST Console](https://sst.dev/docs/console/).
+
+## Overview
+
+Agentic SaaS uses SST's auto-deployment feature to automatically deploy your applications when you push changes to specific branches. The setup process involves:
+- Connecting your AWS accounts
+- Linking your GitHub repositories
+- Configuring deployment environments
+- Setting up branch-based deployments
+
+## 1. Add AWS Accounts
+
+1. **Create SST Console Account**
+   - Visit [console.sst.dev](https://console.sst.dev)
+   - Sign up with your work email
+   - Create a new workspace for your organization
+
+2. **Connect AWS Account**
+   - Go to Workspace Settings > AWS Accounts
+   - Click "Add AWS Account"
+   - Create the CloudFormation stack in **us-east-1**
+   - Wait for account connection to complete
+
+3. **Verify Connection**
+   - Check that your SST apps are detected
+   - Verify access to all regions
+   - Ensure proper IAM role setup
+
+## 2. Link GitHub Repositories
+
+1. **Install GitHub App**
+   - Go to App Settings > Autodeploy
+   - Click "Connect GitHub"
+   - Install SST Console GitHub App
+   - Select repositories to connect
+
+2. **Configure Repository Access**
+   - Choose between all repositories or select repositories
+   - Grant necessary permissions
+
+## 3. Configure Deployment Environments
+
+1. **Set Up Environments**
+   ```typescript
+   // sst.config.ts
+   export default $config({
+     app(input) {
+       return {
+         name: "my-app",
+         stage: input.stage,
+       };
+     },
+     console: {
+       autodeploy: {
+         target(event) {
+           // Deploy main branch to production
+           if (event.type === "branch" && event.branch === "main") {
+             return { stage: "production" };
+           }
+           // Deploy develop branch to staging
+           if (event.type === "branch" && event.branch === "develop") {
+             return { stage: "staging" };
+           }
+           // Deploy PRs to preview environments
+           if (event.type === "pr") {
+             return { stage: `pr-${event.pr}` };
+           }
+         }
+       }
+     }
+   });
+   ```
+
+2. **Add Environment Variables**
+   - Navigate to App Settings > Autodeploy
+   - Add environment for each stage:
+     ```bash
+     # Production
+     STAGE=production
+     DOMAIN=yourdomain.com
+     STRIPE_KEY=sk_live_...
+
+     # Staging
+     STAGE=staging
+     DOMAIN=staging.yourdomain.com
+     STRIPE_KEY=sk_test_...
+     ```
+
+3. **Configure Stage Patterns**
+   - Set up production environment for `main` branch
+   - Configure staging for `develop` branch
+   - Add preview environments for PRs using `pr-*` pattern
+
+## 4. Trigger Deployments
+
+1. **Push to Repository**
+   ```bash
+   # Deploy to staging
+   git checkout develop
+   git commit -m "feat: new feature"
+   git push origin develop
+
+   # Deploy to production
+   git checkout main
+   git merge develop
+   git push origin main
+   ```
+
+2. **Monitor Deployments**
+   - Visit SST Console > Your App > Autodeploy
+   - Check deployment status and logs
+   - Verify environment variables
+   - Monitor build progress
+
+3. **Set Up Notifications**
+   - Configure Slack notifications
+   - Set up email alerts
+   - Enable deployment status updates
+
+## Best Practices
+
+1. **Branch Protection**
+   - Enable branch protection rules
+   - Require pull request reviews
+   - Set up status checks
+
+2. **Environment Management**
+   - Use stage-specific configurations
+   - Secure sensitive environment variables
+   - Implement proper access controls
+
+3. **Monitoring**
+   - Set up deployment alerts
+   - Monitor build times
+   - Track deployment success rates 

@@ -1,0 +1,585 @@
+---
+title: 'Adding Agents'
+description: 'Add new AI agents to your application'
+---
+
+This guide walks you through the process of adding new AI agents to your Agentic SaaS application using the hexagonal architecture pattern from the Full-Stack Template.
+
+## Implementation Guide
+
+Follow these steps to implement a new agent in your application.
+
+### 1. Define the Agent Schema
+
+Start by defining the schema for your agent in the metadata package. This will define the input and output data structures.
+
+```typescript
+// packages/metadata/agents/your-agent.schema.ts
+import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
+
+export enum YourAgentStatus {
+  PENDING = "pending",
+  COMPLETED = "completed",
+  FAILED = "failed"
+}
+
+// Define the input schema
+export const RequestYourAgentInputSchema = z.object({
+  prompt: z.string(),
+  id: z.string().optional().default(uuidv4()),
+  userId: z.string(),
+  keyId: z.string(),
+});
+
+// Define the system prompt for the agent
+export const systemPrompt = `
+You are a specialized agent that helps users with [describe your agent's purpose].
+
+Your task is to [describe the agent's main task].
+
+Follow these guidelines:
+1. [Guideline 1]
+2. [Guideline 2]
+3. [Guideline 3]
+`;
+
+// Function to format the user prompt
+export const userPrompt = (input: RequestYourAgentInput): string => `
+Process the following request:
+
+${input.prompt}
+`;
+
+// Define the output schema
+export const YourAgentOutputSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  title: z.string(),
+  content: z.string(),
+  status: z.nativeEnum(YourAgentStatus).default(YourAgentStatus.PENDING),
+  // Add other fields as needed
+});
+
+// Define the get input schema
+export const GetYourAgentInputSchema = z.object({
+  userId: z.string(),
+  id: z.string(),
+});
+
+// Define the get all input schema
+export const GetAllYourAgentInputSchema = z.object({
+  userId: z.string(),
+});
+
+// Export types
+export type RequestYourAgentInput = z.infer<typeof RequestYourAgentInputSchema>;
+export type YourAgentOutput = z.infer<typeof YourAgentOutputSchema>;
+export type GetYourAgentInput = z.infer<typeof GetYourAgentInputSchema>;
+export type GetAllYourAgentInput = z.infer<typeof GetAllYourAgentInputSchema>;
+```
+
+### 2. Create the Agent Directory Structure
+
+Create a new directory for your agent with the following structure:
+
+```
+packages/core/src/your-agent/
+├── adapters/
+│   ├── primary/
+│   │   ├── request-your-agent.adapter.ts
+│   │   └── get-your-agent.adapter.ts
+│   └── secondary/
+│       ├── openai.adapter.ts
+│       └── datastore.adapter.ts
+└── usecase/
+    └── your-agent.usecase.ts
+```
+
+### 3. Implement the Secondary Adapters
+
+Secondary adapters handle communication with external systems like AI providers and databases.
+
+#### 3.1 OpenAI Adapter
+
+```typescript
+// packages/core/src/your-agent/adapters/secondary/openai.adapter.ts
+import OpenAI from "openai";
+import { 
+  RequestYourAgentInput, 
+  YourAgentOutput,
+  YourAgentOutputSchema,
+  systemPrompt,
+  userPrompt 
+} from "@metadata/agents/your-agent.schema";
+import { Resource } from "sst";
+import { withRetry } from "@utils/tools/retry";
+
+const client = new OpenAI({
+  apiKey: Resource.OpenAiApiKey.value
+});
+
+export const executeYourAgent = async (input: RequestYourAgentInput): Promise<YourAgentOutput> => {
+  try {
+    // Create the initial response using the main model and web search
+    const response = await client.responses.create({
+      model: "gpt-4o",
+      tools: [{
+        type: "web_search_preview", 
+        search_context_size: "high",
+      }],
+      instructions: systemPrompt,
+      input: [
+        {"role": "user", "content": userPrompt(input)}
+      ],
+      tool_choice: "required"
+    });
+    
+    // Process and format the output
+    const formattedOutput = YourAgentOutputSchema.parse({
+      id: input.id,
+      userId: input.userId,
+      title: `Response to: ${input.prompt.substring(0, 50)}...`,
+      content: response.output_text,
+      status: "completed"
+    });
+    
+    return formattedOutput;
+  } catch (error) {
+    console.error('Error generating content:', error);
+    throw error;
+  }
+};
+
+// Wrap with retry logic
+export const runYourAgent = withRetry(executeYourAgent, { 
+  retries: 3, 
+  delay: 1000, 
+  onRetry: (error: Error) => console.warn('Retrying content generation due to error:', error) 
+});
+```
+
+#### 3.2 Datastore Adapter
+
+```typescript
+// packages/core/src/your-agent/adapters/secondary/datastore.adapter.ts
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { YourAgentOutputSchema } from "@metadata/agents/your-agent.schema";
+import { 
+  createRepository, 
+  IRepository 
+} from "@lib/repository.factory";
+import { z } from "zod";
+
+// Define the output type
+export type YourAgentOutput = z.infer<typeof YourAgentOutputSchema>;
+
+// Set up DynamoDB client
+const dynamoDbClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+
+// Create and export the repository
+export const YourAgentRepository = createRepository<YourAgentOutput>(dynamoDbClient, {
+  tableName: 'your-agent-table',
+  partitionKey: 'userId',
+  sortKey: 'id',
+  verbose: true
+});
+```
+
+### 4. Implement the Use Case
+
+The use case contains the core business logic for your agent.
+
+```typescript
+// packages/core/src/your-agent/usecase/your-agent.usecase.ts
+import { RequestYourAgentInput } from '@metadata/agents/your-agent.schema';
+import { Message } from '@metadata/message.schema';
+import { runYourAgent } from '../adapters/secondary/openai.adapter';
+import { YourAgentRepository } from '../adapters/secondary/datastore.adapter';
+
+export const runYourAgentUsecase = async (input: RequestYourAgentInput): Promise<Message> => {
+  console.info("Processing Your Agent for User");
+
+  try {
+    // Call the AI provider adapter to generate content
+    const result = await runYourAgent(input);
+    
+    // Update status to completed
+    result.status = 'completed';
+    
+    // Save to the database
+    const message = await YourAgentRepository.saveYourAgent(result);
+    
+    // Return success message
+    return {
+      message: message
+    };
+
+  } catch (error) {
+    console.error('Error processing Your Agent:', error);
+    throw new Error('Failed to process Your Agent', { cause: error });
+  }
+};
+```
+
+### 5. Implement the Primary Adapters
+
+Primary adapters handle incoming requests and transform them into a format the use cases can process.
+
+#### 5.1 Request Adapter
+
+```typescript
+// packages/core/src/your-agent/adapters/primary/request-your-agent.adapter.ts
+import { randomUUID } from 'crypto';
+import { 
+  createLambdaAdapter, 
+  EventParser,
+  LambdaAdapterOptions 
+} from '@lib/lambda-adapter.factory';
+import { RequestYourAgentInputSchema, RequestYourAgentInput } from "@metadata/agents/your-agent.schema";
+import { OrchestratorHttpResponses } from '@metadata/http-responses.schema';
+import { APIGatewayProxyEventV2 } from 'aws-lambda';
+import { ValidUser } from '@metadata/saas-identity.schema';
+import { apiKeyService } from '@utils/vendors/api-key-vendor';
+import { runYourAgentUsecase } from '../../usecase/your-agent.usecase';
+import { YourAgentRepository } from '@agent-runtime/your-agent/adapters/secondary/datastore.adapter';
+
+/**
+ * Parser function that transforms the API Gateway event into the format
+ * expected by the Your Agent use case
+ */
+const yourAgentEventParser: EventParser<RequestYourAgentInput> = (
+  event: APIGatewayProxyEventV2,
+  validUser: ValidUser
+) => {
+  // Parse the request body
+  if (!event.body) {
+    throw new Error("Missing request body");
+  }
+  
+  const parsedBody = JSON.parse(event.body);
+  
+  // Generate ID if needed
+  const id = randomUUID();
+  
+  // Return parsed input with user info
+  return {
+    ...parsedBody,
+    id,
+    userId: validUser.userId,
+    keyId: validUser.keyId
+  };
+};
+
+/**
+ * Configuration options for the Your Agent adapter
+ */
+const adapterOptions: LambdaAdapterOptions = {
+  requireAuth: true,
+  requireBody: true,
+  requiredFields: ['prompt'] // Required fields in the request body
+};
+
+/**
+ * Decrement user credits
+ */
+const decrementUserCredits = async (input: { userId: string, keyId: string }) => {
+  await apiKeyService.updateUserCredits({
+    userId: input.userId,
+    keyId: input.keyId,
+    operation: 'decrement',
+    amount: 1
+  });
+};
+
+/**
+ * Use case for handling Your Agent requests
+ * This function:
+ * 1. Decrements user credits
+ * 2. Creates an initial pending state in the database
+ * 3. Asynchronously processes the request
+ * 4. Returns the initial state immediately
+ */
+const executeYourAgentUsecase = async (input: RequestYourAgentInput) => {
+  // Decrement credits and create pending state
+  await decrementUserCredits({
+    userId: input.userId,
+    keyId: input.keyId
+  });
+  
+  // Create pending entry
+  const pendingYourAgent = {
+    id: input.id,
+    userId: input.userId,
+    title: `Processing: ${input.prompt.substring(0, 50)}...`,
+    content: "Your request is being processed...",
+    status: 'pending'
+  };
+  
+  // Save pending state
+  await YourAgentRepository.saveYourAgent(pendingYourAgent);
+  
+  // Start processing asynchronously
+  runYourAgentUsecase(input).catch(error => {
+    console.error('Error executing Your Agent:', error);
+  });
+  
+  // Return pending state immediately
+  return pendingYourAgent;
+};
+
+/**
+ * Lambda adapter for handling Your Agent requests
+ */
+export const requestYourAgentAdapter = createLambdaAdapter({
+  schema: RequestYourAgentInputSchema,
+  useCase: executeYourAgentUsecase,
+  eventParser: yourAgentEventParser,
+  options: adapterOptions,
+  responseFormatter: (result) => OrchestratorHttpResponses.ACCEPTED({ body: result })
+});
+```
+
+#### 5.2 Get Adapter
+
+```typescript
+// packages/core/src/your-agent/adapters/primary/get-your-agent.adapter.ts
+import { 
+  createLambdaAdapter, 
+  EventParser,
+  LambdaAdapterOptions 
+} from '@lib/lambda-adapter.factory';
+import { GetYourAgentInputSchema, GetYourAgentInput } from "@metadata/agents/your-agent.schema";
+import { OrchestratorHttpResponses } from '@metadata/http-responses.schema';
+import { APIGatewayProxyEventV2 } from 'aws-lambda';
+import { ValidUser } from '@metadata/saas-identity.schema';
+import { YourAgentRepository } from '../secondary/datastore.adapter';
+
+/**
+ * Parser function that transforms the API Gateway event into the format
+ * expected by the Get Your Agent use case
+ */
+const getYourAgentEventParser: EventParser<GetYourAgentInput> = (
+  event: APIGatewayProxyEventV2,
+  validUser: ValidUser
+) => {
+  // Get ID from path parameters
+  const id = event.pathParameters?.id;
+  
+  if (!id) {
+    throw new Error("Missing ID parameter");
+  }
+  
+  // Return parsed input with user info
+  return {
+    id,
+    userId: validUser.userId
+  };
+};
+
+/**
+ * Configuration options for the Get Your Agent adapter
+ */
+const adapterOptions: LambdaAdapterOptions = {
+  requireAuth: true,
+  requireBody: false
+};
+
+/**
+ * Use case for handling Get Your Agent requests
+ */
+const getYourAgentUsecase = async (input: GetYourAgentInput) => {
+  // Get the agent result from the database
+  const result = await YourAgentRepository.getYourAgent(input.userId, input.id);
+  
+  if (!result) {
+    throw new Error("Your Agent result not found");
+  }
+  
+  return result;
+};
+
+/**
+ * Lambda adapter for handling Get Your Agent requests
+ */
+export const getYourAgentAdapter = createLambdaAdapter({
+  schema: GetYourAgentInputSchema,
+  useCase: getYourAgentUsecase,
+  eventParser: getYourAgentEventParser,
+  options: adapterOptions,
+  responseFormatter: (result) => OrchestratorHttpResponses.OK({ body: result })
+});
+```
+
+### 6. Create Lambda Function Handlers
+
+Create the Lambda function handlers in the functions package:
+
+```typescript
+// packages/functions/src/agent-runtime.api.ts
+import { requestYourAgentAdapter } from '@agent-runtime/your-agent/adapters/primary/request-your-agent.adapter';
+import { getYourAgentAdapter } from '@agent-runtime/your-agent/adapters/primary/get-your-agent.adapter';
+
+// Export the handlers
+export const requestYourAgentHandler = requestYourAgentAdapter;
+export const getYourAgentHandler = getYourAgentAdapter;
+```
+
+### 7. Update Infrastructure Configuration
+
+Update the infrastructure configuration to include your new agent:
+
+```typescript
+// infra/web.ts
+import { api } from './api';
+import { yourAgentTable } from './database';
+
+// Add routes for your agent
+api.route("POST /your-agent", {
+  link: [yourAgentTable, openaiApiKey],
+  handler: "./packages/functions/src/agent-runtime.api.requestYourAgentHandler",
+});
+
+api.route("GET /your-agent/{id}", {
+  link: [yourAgentTable],
+  handler: "./packages/functions/src/agent-runtime.api.getYourAgentHandler",
+});
+```
+
+```typescript
+// infra/database.ts
+// Add a table for your agent
+export const yourAgentTable = new sst.aws.Dynamo("YourAgent", {
+  fields: {
+    userId: "string",
+    id: "string",
+    title: "string",
+    content: "string",
+    status: "string",
+  },
+  primaryIndex: { hashKey: "userId", rangeKey: "id" },
+});
+```
+
+### 8. Update Frontend Integration
+
+Finally, update the frontend to integrate with your new agent:
+
+```typescript
+// packages/frontend/src/api/agents.ts
+export const requestYourAgent = async (prompt: string): Promise<any> => {
+  const response = await fetch('/api/your-agent', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ prompt }),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to request your agent');
+  }
+  
+  return response.json();
+};
+
+export const getYourAgentResult = async (id: string): Promise<any> => {
+  const response = await fetch(`/api/your-agent/${id}`);
+  
+  if (!response.ok) {
+    throw new Error('Failed to get your agent result');
+  }
+  
+  return response.json();
+};
+```
+
+```tsx
+// packages/frontend/src/components/YourAgentForm.tsx
+import { useState } from 'react';
+import { requestYourAgent } from '@/api/agents';
+
+export default function YourAgentForm() {
+  const [prompt, setPrompt] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      const response = await requestYourAgent(prompt);
+      setResult(response);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  return (
+    <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold mb-4">Your Agent</h2>
+      
+      <form onSubmit={handleSubmit}>
+        <div className="mb-4">
+          <label className="block text-gray-700 mb-2">Prompt</label>
+          <textarea
+            className="w-full px-3 py-2 border rounded-lg"
+            rows={4}
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Enter your prompt here..."
+            required
+          />
+        </div>
+        
+        <button
+          type="submit"
+          className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
+          disabled={loading}
+        >
+          {loading ? 'Processing...' : 'Submit'}
+        </button>
+      </form>
+      
+      {result && (
+        <div className="mt-6">
+          <h3 className="text-xl font-semibold mb-2">Result</h3>
+          <div className="p-4 bg-gray-100 rounded-lg">
+            <p className="text-sm text-gray-500">Status: {result.status}</p>
+            <p className="font-medium mt-2">{result.title}</p>
+            <p className="mt-2">{result.content}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Best Practices
+
+1. **Single Responsibility**: Each component should have a single responsibility
+2. **Immutability**: Prefer immutable data structures
+3. **Pure Functions**: Minimize side effects in business logic
+4. **Consistent Naming**: Follow established naming conventions
+5. **Comprehensive Logging**: Include appropriate logging for debugging
+6. **Error Handling**: Implement proper error handling at each layer
+7. **Testing**: Write unit tests for each component
+
+## Common Anti-patterns to Avoid
+
+1. **Leaky Abstractions**: Don't let external concerns leak into use cases
+2. **Direct Dependencies**: Don't import external services directly in use cases
+3. **Inconsistent Error Handling**: Don't swallow errors without proper handling
+4. **Tight Coupling**: Don't create tight coupling between components
+5. **Mixed Responsibilities**: Don't mix business logic with I/O operations
+
+## Next Steps
+
+- [Understand the Hexagonal Architecture](/self-hosting/concepts/architecture)
+- [Explore the Full-Stack Template](/self-hosting/templates/fs-template)
+- [Automate Your Deployment](/self-hosting/guides/automate-deployments)

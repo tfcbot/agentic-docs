@@ -1,0 +1,101 @@
+---
+title: 'Account Setups'
+description: 'Setup your accounts for Agentic SaaS'
+---
+
+## Prerequisites
+
+- A dedicated development AWS account with AWS SSO
+- A Github account
+- A Stripe account
+- A Clerk account
+- A Cloudflare account
+- AWS Account 
+
+
+## Setup Your Developer Accounts
+
+
+### AWS Account
+
+You will need to configure AWS to use SST for automation. Follow the guide [here](https://sst.dev/docs/aws-accounts) to set up your AWS accounts with SST.
+
+You can also configure autodeploy with SST following the guide [here](https://sst.dev/docs/reference/config/#console-autodeploy)
+
+### Github Account
+
+A github account is required to clone the templates and deploy. 
+
+When create a clone from a template, do not select the "include all branches" option. 
+
+For more help with cloning, head over to the [here](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template#creating-a-repository-from-a-template).
+
+### AI Code Editor 
+
+Cursor AI is a great tool and the recommended editor for development. 
+
+You can get started with cursor by going to [cursor.sh](https://cursor.sh/)
+
+## Billing and Auth Services 
+
+You will need to configure these services to enable billing and auth for your users.
+
+### Stripe
+
+The endpoint is already preconfigured in the API template as `/checkout`. 
+
+Create a webhook for the `checkout-session.completed` event using the url `https://dev-api.yourdomain.com/v1/checkout`. 
+
+Create a product and price in Stripe. 
+
+Next, update your `.env.dev` file with the correct values for stripe.
+
+For more step-by-step instructions on setting up your webhooks, head over to the [Setup Webhooks](/self-hosting/guides/setup-webhooks) guide.
+
+For more help creating a product and price, head over to the [Stripe Products](https://support.stripe.com/questions/how-to-create-products-and-prices).
+
+### Clerk
+
+In clerk you will need to create a webhook for the `user.created` event. 
+
+The endpoint is already preconfigured in the API template as `/signup-webhook`.
+
+Create a webhook for the `user.created` event using the url `https://dev-api.yourdomain.com/v1/signup-webhook`.
+
+Customize the session token by with the following metadata: 
+
+```
+{
+	"metadata": "{{user.public_metadata}}"
+}
+```
+For more help customizing the session token, head over to the [Customizing the Session Token](https://clerk.com/docs/backend-requests/making/custom-session-token).
+
+For more step-by-step instructions on setting up your webhooks, head over to the [Setup Webhooks](/self-hosting/guides/setup-webhooks) guide.
+
+### Unkey
+
+Unkey is used to manage your API keys. 
+
+You will need to create a root key and an API. From there you will need to update the `.env.dev` file in the API template with the correct values.
+
+For more help setting up your API keys, head over to the [Unkey Docs](https://www.unkey.com/docs/quickstart/onboarding/onboarding-api).
+
+## Cloudflare
+
+Cloudflare is used to manage your DNS and SSL certificates. It also provides security protections for you web app and API.
+
+To set up your custom domain, head over to the [Cloudflare Guide](/guides/add-custom-domain).
+
+
+Once you have your custom domain set up, you will need to update the `BASE_DOMAIN` variable in the `.env.dev` file in the API template.
+
+You will also need to make sure your domain is set to Full-strict [Full-Strict](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/full-strict/) mode.
+
+Then set up your Cloudflare API token. 
+
+For more help setting up your Cloudflare API token, head over to the [Cloudflare API Token](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/).
+
+<Note>
+  If you don't have a custom domain the template will fail to deploy. 
+</Note>
