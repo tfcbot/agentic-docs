@@ -44,7 +44,6 @@ fs-template/
 │   │       │   │   ├── primary/    # Input adapters
 │   │       │   │   └── secondary/  # Output adapters
 │   │       │   └── usecase/        # Business logic
-│   │       └── ...
 │   ├── frontend/                   # React frontend application
 │   │   ├── public/                 # Static assets
 │   │   └── src/                    # Frontend source code
@@ -139,6 +138,57 @@ The FS template implements a hexagonal architecture (also known as ports and ada
    - Database Adapters
    - Third-party Service Adapters
 
+## Core Library (lib/)
+
+The `lib/` directory contains reusable factory patterns and base classes that provide standardized implementations for common functionality across the application. These components abstract away the complexity of working directly with AWS services and provide a consistent interface for your application.
+
+### Key Components in lib/
+
+1. **dynamodb-repository.factory.ts**: Factory for creating DynamoDB repositories with standardized CRUD operations
+2. **lambda-adapter.factory.ts**: Factory for creating Lambda adapters with consistent request handling and error management
+3. **sqs-adapter.factory.ts**: Factory for creating SQS adapters for message processing
+4. **topic-publisher.adapter.ts**: Adapter for publishing messages to SNS topics
+5. **transaction.util.ts**: Utilities for handling DynamoDB transactions
+
+### Benefits of the lib/ Abstractions
+
+- **Consistent Patterns**: Standardized approach to common operations
+- **Reduced Boilerplate**: Factories eliminate repetitive code
+- **Type Safety**: Strong typing for all operations
+- **Error Handling**: Consistent error handling and logging
+- **Testability**: Easier to mock and test components
+
+### Example: Using the DynamoDB Repository Factory
+
+```typescript
+// Creating a repository for an agent's data
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { YourAgentOutputSchema } from "@metadata/agents/your-agent.schema";
+import { createRepository } from "@lib/dynamodb-repository.factory";
+import { z } from "zod";
+
+// Define the output type
+export type YourAgentOutput = z.infer<typeof YourAgentOutputSchema>;
+
+// Set up DynamoDB client
+const dynamoDbClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+
+// Create and export the repository
+export const YourAgentRepository = createRepository<YourAgentOutput>(dynamoDbClient, {
+  tableName: 'your-agent-table',
+  partitionKey: 'userId',
+  sortKey: 'id',
+  verbose: true
+});
+
+// Now you can use methods like:
+// YourAgentRepository.get(partitionKey, sortKey)
+// YourAgentRepository.put(item)
+// YourAgentRepository.query(keyName, keyValue)
+// YourAgentRepository.update(key, updateExpression, expressionAttributeValues)
+```
+
 ## Agent Implementation Pattern
 
 When implementing your AI agent, you'll follow this standardized directory structure:
@@ -213,7 +263,7 @@ api.route("GET /personas", {
 
 ## Environment Configuration
 
-Create a `.env.local` file in the project root:
+Create a `.env.local` file in the project root. Note that SST uses SNAKE_CASE for environment variables as per their [documentation](https://sst.dev/docs/environment-variables/#secrets):
 
 ```bash
 # AWS/SST Configuration

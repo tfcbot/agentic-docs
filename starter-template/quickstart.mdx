@@ -80,32 +80,35 @@ export default $config({
 ```
 
 ### Environment Variables
+
+SST uses SNAKE_CASE for environment variables. For more information, see the [SST Environment Variables documentation](https://sst.dev/docs/environment-variables/#secrets).
+
 ```bash
 # AWS/SST Configuration
-AWS_PROFILE=<your-aws-profile>
+AwsProfile=<your-aws-profile>
 
 # Authentication
-CLERK_SECRET_KEY=<your-clerk-secret-key>
-CLERK_PUBLISHABLE_KEY=<your-clerk-publishable-key>
-CLERK_SIGN_IN_URL=/sign-in
-CLERK_SIGN_UP_URL=/sign-up
+ClerkSecretKey=<your-clerk-secret-key>
+ClerkPublishableKey=<your-clerk-publishable-key>
+ClerkSignInUrl=/sign-in
+ClerkSignUpUrl=/sign-up
 
 # AI Services
-OPENAI_API_KEY=<your-openai-api-key>
+OpenaiApiKey=<your-openai-api-key>
 
 # Payments
-STRIPE_SECRET_KEY=<your-stripe-secret-key>
-STRIPE_PUBLISHABLE_KEY=<your-stripe-publishable-key>
-STRIPE_WEBHOOK_SECRET=<your-stripe-webhook-secret>
-PRICE_ID=<your-stripe-price-id>
+StripeSecretKey=<your-stripe-secret-key>
+StripePublishableKey=<your-stripe-publishable-key>
+StripeWebhookSecret=<your-stripe-webhook-secret>
+PriceId=<your-stripe-price-id>
 
 # Domain Configuration
-BASE_DOMAIN=<your-domain.com>
-CLOUDFLARE_API_TOKEN=<your-cloudflare-api-token>
+BaseDomain=<your-domain.com>
+CloudflareApiToken=<your-cloudflare-api-token>
 
 # API Keys
-UNKEY_ROOT_KEY=<your-unkey-root-key>
-UNKEY_API_ID=<your-unkey-api-id>
+UnkeyRootKey=<your-unkey-root-key>
+UnkeyApiId=<your-unkey-api-id>
 ```
 
 <Note>
@@ -125,7 +128,7 @@ bun install
   <Step title="Set AWS Profile">
     Export your AWS profile for the account you want to deploy to:
     ```bash
-    export AWS_PROFILE=<your-aws-profile>
+    export AwsProfile=<your-aws-profile>
     ```
   </Step>
 

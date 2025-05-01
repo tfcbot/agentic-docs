@@ -1,0 +1,615 @@
+---
+title: 'Research Agent'
+description: 'Create comprehensive research on any topic with web search capabilities'
+---
+
+This guide demonstrates how to implement the Research Agent using the hexagonal architecture pattern from the Full-Stack Template.
+
+## Overview
+
+The Research Agent is a powerful tool that can generate comprehensive research on any topic by searching the web for relevant information. It follows the hexagonal architecture pattern, separating the business logic from external concerns like web APIs and databases.
+
+## Implementation Guide
+
+### 1. Define the Agent Schema
+
+First, create the schema for your Research Agent in the metadata package:
+
+```typescript
+// packages/metadata/agents/research-agent.schema.ts
+import { z } from "zod";
+import { v4 as uuidv4 } from 'uuid';
+
+export enum ResearchStatus {
+  PENDING = "pending",
+  COMPLETED = "completed",
+  FAILED = "failed"
+} 
+
+export const RequestResearchInputSchema = z.object({
+    prompt: z.string(),
+    id: z.string().optional().default(uuidv4()),
+    userId: z.string(),
+    keyId: z.string(),
+});
+
+export const systemPrompt = `
+You are a research agent.
+
+You are responsible for creating detailed research for a given topic.
+
+You will be given a prompt and you will need to create comprehensive research according to the prompt.
+
+Search the web for relevant information and use it to create the research.
+
+You will need to provide a list of citations for the research.
+
+The citations should be in the format of a list of URLs.
+`
+
+export const userPrompt = (input: RequestResearchInput): string => `
+Generate research according to the following prompt:
+
+${input.prompt}
+`
+
+export const RequestResearchOutputSchema = z.object({
+    researchId: z.string(),
+    title: z.string(), 
+    content: z.string(),
+    citation_links: z.array(z.string()),
+    researchStatus: z.nativeEnum(ResearchStatus).default(ResearchStatus.PENDING),
+});
+
+export const GetResearchInputSchema = z.object({  
+    userId: z.string(),
+    researchId: z.string(),
+});
+
+export const GetAllUserResearchInputSchema = z.object({
+    userId: z.string(),
+});
+
+export type RequestResearchOutput = z.infer<typeof RequestResearchOutputSchema>;
+export type RequestResearchInput = z.infer<typeof RequestResearchInputSchema>;
+export type GetResearchInput = z.infer<typeof GetResearchInputSchema>; 
+export type GetAllUserResearchInput = z.infer<typeof GetAllUserResearchInputSchema>;
+```
+
+### 2. Implement the Secondary Adapters
+
+#### 2.1 OpenAI Adapter
+
+```typescript
+// packages/core/src/orchestrator/agent-runtime/researcher/adapters/secondary/openai.adapter.ts
+import OpenAI from "openai";
+import { 
+  RequestResearchInput, 
+  RequestResearchOutput,
+  RequestResearchOutputSchema,
+  systemPrompt,
+  userPrompt 
+} from "@metadata/agents/research-agent.schema";
+import { Resource } from "sst";
+import { withRetry } from "@utils/tools/retry";
+
+const client = new OpenAI({
+  apiKey: Resource.OPENAI_API_KEY.value
+});
+
+export const executeResearch = async (input: RequestResearchInput): Promise<RequestResearchOutput> => {
+  try {
+    // Create the initial response using the main model and web search
+    const response = await client.responses.create({
+      model: "gpt-4o",
+      tools: [{
+        type: "web_search_preview", 
+        search_context_size: "high",
+      }],
+      instructions: systemPrompt,
+      input: [
+        {"role": "user", "content": userPrompt(input)}
+      ],
+      tool_choice: "required"
+    });
+    
+    // Extract citations from the response
+    const citations = extractCitations(response.output_text);
+    
+    // Process and format the output
+    const formattedOutput = RequestResearchOutputSchema.parse({
+      researchId: input.id,
+      title: generateTitle(input.prompt),
+      content: response.output_text,
+      citation_links: citations,
+      researchStatus: "completed"
+    });
+    
+    return formattedOutput;
+  } catch (error) {
+    console.error('Error generating research:', error);
+    throw error;
+  }
+};
+
+// Helper function to extract citation links from the response
+function extractCitations(text: string): string[] {
+  // Simple regex to extract URLs
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const matches = text.match(urlRegex) || [];
+  return [...new Set(matches)]; // Remove duplicates
+}
+
+// Helper function to generate a title from the prompt
+function generateTitle(prompt: string): string {
+  // Take the first 50 characters of the prompt and add "Research on: " prefix
+  return `Research on: ${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}`;
+}
+
+// Wrap with retry logic
+export const runResearch = withRetry(executeResearch, { 
+  retries: 3, 
+  delay: 1000, 
+  onRetry: (error: Error) => console.warn('Retrying research generation due to error:', error) 
+});
+```
+
+#### 2.2 Datastore Adapter
+
+```typescript
+// packages/core/src/orchestrator/agent-runtime/researcher/adapters/secondary/datastore.adapter.ts
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { RequestResearchOutputSchema } from "@metadata/agents/research-agent.schema";
+import { createRepository } from "@lib/dynamodb-repository.factory";
+import { z } from "zod";
+
+// Define the output type
+export type ResearchOutput = z.infer<typeof RequestResearchOutputSchema>;
+
+// Set up DynamoDB client
+const dynamoDbClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+
+// Create and export the repository
+export const ResearchRepository = createRepository<ResearchOutput>(dynamoDbClient, {
+  tableName: 'research-table',
+  partitionKey: 'userId',
+  sortKey: 'researchId',
+  verbose: true
+});
+```
+
+### 3. Implement the Use Case
+
+```typescript
+// packages/core/src/orchestrator/agent-runtime/researcher/usecase/research.usecase.ts
+import { RequestResearchInput } from '@metadata/agents/research-agent.schema';
+import { Message } from '@metadata/message.schema';
+import { runResearch } from '../adapters/secondary/openai.adapter';
+import { ResearchRepository } from '../adapters/secondary/datastore.adapter';
+
+export const runResearchUsecase = async (input: RequestResearchInput): Promise<Message> => {
+  console.info("Processing Research for User");
+
+  try {
+    // Call the AI provider adapter to generate content
+    const result = await runResearch(input);
+    
+    // Update status to completed
+    result.researchStatus = 'completed';
+    
+    // Save to the database
+    await ResearchRepository.put(result);
+    
+    // Return success message
+    return {
+      message: "Research completed successfully"
+    };
+
+  } catch (error) {
+    console.error('Error processing Research:', error);
+    throw new Error('Failed to process Research', { cause: error });
+  }
+};
+```
+
+### 4. Implement the Primary Adapters
+
+#### 4.1 Request Adapter
+
+```typescript
+// packages/core/src/orchestrator/agent-runtime/researcher/adapters/primary/request-research.adapter.ts
+import { randomUUID } from 'crypto';
+import { 
+  createLambdaAdapter, 
+  EventParser,
+  LambdaAdapterOptions 
+} from '@lib/lambda-adapter.factory';
+import { RequestResearchInputSchema, RequestResearchInput } from "@metadata/agents/research-agent.schema";
+import { OrchestratorHttpResponses } from '@metadata/http-responses.schema';
+import { APIGatewayProxyEventV2 } from 'aws-lambda';
+import { ValidUser } from '@metadata/saas-identity.schema';
+import { apiKeyService } from '@utils/vendors/api-key-vendor';
+import { runResearchUsecase } from '../../usecase/research.usecase';
+import { ResearchRepository } from '../secondary/datastore.adapter';
+
+/**
+ * Parser function that transforms the API Gateway event into the format
+ * expected by the Research use case
+ */
+const researchEventParser: EventParser<RequestResearchInput> = (
+  event: APIGatewayProxyEventV2,
+  validUser: ValidUser
+) => {
+  // Parse the request body
+  if (!event.body) {
+    throw new Error("Missing request body");
+  }
+  
+  const parsedBody = JSON.parse(event.body);
+  
+  // Generate ID if needed
+  const id = randomUUID();
+  
+  // Return parsed input with user info
+  return {
+    ...parsedBody,
+    id,
+    userId: validUser.userId,
+    keyId: validUser.keyId
+  };
+};
+
+/**
+ * Configuration options for the Research adapter
+ */
+const adapterOptions: LambdaAdapterOptions = {
+  requireAuth: true,
+  requireBody: true,
+  requiredFields: ['prompt'] // Required fields in the request body
+};
+
+/**
+ * Decrement user credits
+ */
+const decrementUserCredits = async (input: { userId: string, keyId: string }) => {
+  await apiKeyService.updateUserCredits({
+    userId: input.userId,
+    keyId: input.keyId,
+    operation: 'decrement',
+    amount: 1
+  });
+};
+
+/**
+ * Use case for handling Research requests
+ * This function:
+ * 1. Decrements user credits
+ * 2. Creates an initial pending state in the database
+ * 3. Asynchronously processes the request
+ * 4. Returns the initial state immediately
+ */
+const executeResearchUsecase = async (input: RequestResearchInput) => {
+  // Decrement credits and create pending state
+  await decrementUserCredits({
+    userId: input.userId,
+    keyId: input.keyId
+  });
+  
+  // Create pending entry
+  const pendingResearch = {
+    researchId: input.id,
+    userId: input.userId,
+    title: `Processing: ${input.prompt.substring(0, 50)}...`,
+    content: "Your research is being processed...",
+    citation_links: [],
+    researchStatus: 'pending'
+  };
+  
+  // Save pending state
+  await ResearchRepository.put(pendingResearch);
+  
+  // Start processing asynchronously
+  runResearchUsecase(input).catch(error => {
+    console.error('Error executing Research:', error);
+  });
+  
+  // Return pending state immediately
+  return pendingResearch;
+};
+
+/**
+ * Lambda adapter for handling Research requests
+ */
+export const requestResearchAdapter = createLambdaAdapter({
+  schema: RequestResearchInputSchema,
+  useCase: executeResearchUsecase,
+  eventParser: researchEventParser,
+  options: adapterOptions,
+  responseFormatter: (result) => OrchestratorHttpResponses.ACCEPTED({ body: result })
+});
+```
+
+#### 4.2 Get Adapter
+
+```typescript
+// packages/core/src/orchestrator/agent-runtime/researcher/adapters/primary/get-research.adapter.ts
+import { 
+  createLambdaAdapter, 
+  EventParser,
+  LambdaAdapterOptions 
+} from '@lib/lambda-adapter.factory';
+import { GetResearchInputSchema, GetResearchInput } from "@metadata/agents/research-agent.schema";
+import { OrchestratorHttpResponses } from '@metadata/http-responses.schema';
+import { APIGatewayProxyEventV2 } from 'aws-lambda';
+import { ValidUser } from '@metadata/saas-identity.schema';
+import { ResearchRepository } from '../secondary/datastore.adapter';
+
+/**
+ * Parser function that transforms the API Gateway event into the format
+ * expected by the Get Research use case
+ */
+const getResearchEventParser: EventParser<GetResearchInput> = (
+  event: APIGatewayProxyEventV2,
+  validUser: ValidUser
+) => {
+  // Get ID from path parameters
+  const researchId = event.pathParameters?.id;
+  
+  if (!researchId) {
+    throw new Error("Missing ID parameter");
+  }
+  
+  // Return parsed input with user info
+  return {
+    researchId,
+    userId: validUser.userId
+  };
+};
+
+/**
+ * Configuration options for the Get Research adapter
+ */
+const adapterOptions: LambdaAdapterOptions = {
+  requireAuth: true,
+  requireBody: false
+};
+
+/**
+ * Use case for handling Get Research requests
+ */
+const getResearchUsecase = async (input: GetResearchInput) => {
+  // Get the research result from the database
+  const result = await ResearchRepository.get(input.userId, input.researchId);
+  
+  if (!result) {
+    throw new Error("Research not found");
+  }
+  
+  return result;
+};
+
+/**
+ * Lambda adapter for handling Get Research requests
+ */
+export const getResearchAdapter = createLambdaAdapter({
+  schema: GetResearchInputSchema,
+  useCase: getResearchUsecase,
+  eventParser: getResearchEventParser,
+  options: adapterOptions,
+  responseFormatter: (result) => OrchestratorHttpResponses.OK({ body: result })
+});
+```
+
+### 5. Create Lambda Function Handlers
+
+```typescript
+// packages/functions/src/agent-runtime.api.ts
+import { requestResearchAdapter } from '@agent-runtime/researcher/adapters/primary/request-research.adapter';
+import { getResearchAdapter } from '@agent-runtime/researcher/adapters/primary/get-research.adapter';
+
+// Export the handlers
+export const requestResearchHandler = requestResearchAdapter;
+export const getResearchHandler = getResearchAdapter;
+```
+
+### 6. Update Infrastructure Configuration
+
+```typescript
+// infra/web.ts
+import { api } from './api';
+import { researchTable } from './database';
+
+// Add routes for the research agent
+api.route("POST /research", {
+  link: [researchTable, openaiApiKey],
+  handler: "./packages/functions/src/agent-runtime.api.requestResearchHandler",
+});
+
+api.route("GET /research/{id}", {
+  link: [researchTable],
+  handler: "./packages/functions/src/agent-runtime.api.getResearchHandler",
+});
+```
+
+```typescript
+// infra/database.ts
+// Add a table for the research agent
+export const researchTable = new sst.aws.Dynamo("Research", {
+  fields: {
+    userId: "string",
+    researchId: "string",
+    title: "string",
+    content: "string",
+    citation_links: "list",
+    researchStatus: "string",
+  },
+  primaryIndex: { hashKey: "userId", rangeKey: "researchId" },
+});
+```
+
+### 7. Frontend Integration
+
+```typescript
+// packages/frontend/src/api/research.ts
+export const requestResearch = async (prompt: string): Promise<any> => {
+  const response = await fetch('/api/research', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ prompt }),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to request research');
+  }
+  
+  return response.json();
+};
+
+export const getResearchResult = async (id: string): Promise<any> => {
+  const response = await fetch(`/api/research/${id}`);
+  
+  if (!response.ok) {
+    throw new Error('Failed to get research result');
+  }
+  
+  return response.json();
+};
+```
+
+```tsx
+// packages/frontend/src/components/ResearchForm.tsx
+import { useState } from 'react';
+import { requestResearch, getResearchResult } from '@/api/research';
+
+export default function ResearchForm() {
+  const [prompt, setPrompt] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [researchId, setResearchId] = useState('');
+  const [polling, setPolling] = useState(false);
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      const response = await requestResearch(prompt);
+      setResult(response);
+      setResearchId(response.researchId);
+      
+      // Start polling if the research is pending
+      if (response.researchStatus === 'pending') {
+        setPolling(true);
+        pollForResults(response.researchId);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const pollForResults = async (id: string) => {
+    try {
+      const result = await getResearchResult(id);
+      
+      if (result.researchStatus === 'completed') {
+        setResult(result);
+        setPolling(false);
+      } else if (result.researchStatus === 'pending') {
+        // Continue polling
+        setTimeout(() => pollForResults(id), 3000);
+      } else {
+        // Failed
+        setPolling(false);
+      }
+    } catch (error) {
+      console.error('Error polling for results:', error);
+      setPolling(false);
+    }
+  };
+  
+  return (
+    <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold mb-4">Research Agent</h2>
+      
+      <form onSubmit={handleSubmit}>
+        <div className="mb-4">
+          <label className="block text-gray-700 mb-2">Research Topic</label>
+          <textarea
+            className="w-full px-3 py-2 border rounded-lg"
+            rows={4}
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Enter your research topic here..."
+            required
+          />
+        </div>
+        
+        <button
+          type="submit"
+          className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
+          disabled={loading || polling}
+        >
+          {loading ? 'Submitting...' : polling ? 'Processing Research...' : 'Generate Research'}
+        </button>
+      </form>
+      
+      {result && (
+        <div className="mt-6">
+          <h3 className="text-xl font-semibold mb-2">{result.title}</h3>
+          <p className="text-sm text-gray-500 mb-4">Status: {result.researchStatus}</p>
+          
+          <div className="prose max-w-none">
+            <div className="p-4 bg-gray-100 rounded-lg whitespace-pre-wrap">
+              {result.content}
+            </div>
+            
+            {result.citation_links && result.citation_links.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-lg font-semibold">Citations</h4>
+                <ul className="list-disc pl-5 mt-2">
+                  {result.citation_links.map((link: string, index: number) => (
+                    <li key={index}>
+                      <a href={link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        {link}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Key Features
+
+- **Web Search Integration**: Uses OpenAI's web search capabilities to gather relevant information
+- **Citation Tracking**: Automatically extracts and stores citation links from the research
+- **Asynchronous Processing**: Returns immediately with a pending state while processing in the background
+- **Polling Mechanism**: Frontend polls for updates until the research is complete
+- **Credit Management**: Decrements user credits when research is requested
+
+## Best Practices
+
+1. **Error Handling**: Implement comprehensive error handling at each layer
+2. **Retry Logic**: Use retry mechanisms for external API calls
+3. **Validation**: Validate all input and output data using Zod schemas
+4. **Asynchronous Processing**: Process long-running tasks asynchronously
+5. **Polling**: Implement polling for long-running operations
+6. **Citation Management**: Track and display sources for research content
+
+## Next Steps
+
+- [Add Your Own Agents](/self-hosting/guides/adding-agents)
+- [Explore the Full-Stack Template](/self-hosting/templates/fs-template)
+- [Understand the Hexagonal Architecture](/self-hosting/concepts/architecture)
+
