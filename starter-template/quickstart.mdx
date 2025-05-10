@@ -24,7 +24,7 @@ The template comes with example agents you can use as a baseline for your own cu
 
 Head over to [account setups](/starter-template/guides/account-setups) for help with prerequisites.
 
-Time to Complete: 30 mins - 2 hrs
+Time to Complete: 30 mins - 1 hrs
 
 
 <Note>
@@ -33,24 +33,18 @@ Time to Complete: 30 mins - 2 hrs
 </Note>
 
 
-## 1. Create a new project directory
 
-```bash
-mkdir my-ai-saas
-cd my-ai-saas
-```
-
-## 2. Set up your Repository
+## 1. Set up your Repository
 
 Create a new repository from the Full-Stack Template: [FS Template](https://github.com/new?template_name=fs-template&template_owner=tfcbot)
 
-```bash
-# Clone FS Template
-cd my-ai-saas
-gh repo clone <your-repo-name>
-```
+<Note>
+  If you find this template helpful, please consider giving it a star on GitHub!
+  - [Full-Stack Template ⭐](https://github.com/tfcbot/fs-template)
+</Note>
 
-The repository will have a `.env.template` file that you can use to set your environment variables. Change the `.env.template` file to `.env.local` and update the variables:
+
+The clone it to your local working directory. 
 
 Also update the `sst.config.ts` file with your app name. 
 
@@ -59,29 +53,42 @@ Also update the `sst.config.ts` file with your app name.
 export default $config({
   app(input) {
     return {
-      name: "<YOUR-APP-NAME>",
-      removal: input?.stage === "prod" ? "retain" : "remove",
-      
+      name: "cfs-template",
+      removal: input?.stage === "production" ? "retain" : "remove",
+      protect: ["production"].includes(input?.stage),
       home: "aws",
-      providers: { aws: {
-        region: "us-east-1",
-      }, "aws-native": {
-        region: "us-east-1",
-      }, 
-      cloudflare: {
-        version: "5.42.0",
-        apiToken: process.env.CLOUDFLARE_API_TOKEN,
-      }
-    },
     };
   },
-  ... rest of the config
+  async run() {
+    const infra = await import("./infra");
+    return {
+      url: infra.frontend.url,
+      api: infra.api.url,
+    };
+  },
 });
+
 ```
 
-### Environment Variables
 
-SST uses SNAKE_CASE for environment variables. For more information, see the [SST Environment Variables documentation](https://sst.dev/docs/environment-variables/#secrets).
+## 2. Install the dependencies 
+Install the dependencies:
+
+```bash
+bun install
+```
+
+Install sst 
+
+```bash 
+bun sst install
+```
+
+## 3. Environment Variables
+
+SST uses camelCase for environment variables. For more information, see the [SST Environment Variables documentation](https://sst.dev/docs/environment-variables/#secrets).
+
+The repository will have a `.env.template` file that you can use to set your environment variables. Change the `.env.template` file to `.env.local` and update the variables:
 
 ```bash
 # AWS/SST Configuration
@@ -111,24 +118,16 @@ UnkeyRootKey=<your-unkey-root-key>
 UnkeyApiId=<your-unkey-api-id>
 ```
 
-<Note>
-  If you find this template helpful, please consider giving it a star on GitHub!
-  - [Full-Stack Template ⭐](https://github.com/tfcbot/fs-template)
-</Note>
 
-Install the dependencies:
 
-```bash
-bun install
-```
 
-## 3. Start your development environment
+## 4. Start your development environment
 
 <Steps>
   <Step title="Set AWS Profile">
     Export your AWS profile for the account you want to deploy to:
     ```bash
-    export AwsProfile=<your-aws-profile>
+    export AWS_PROFILE=<your-aws-profile>
     ```
   </Step>
 
