@@ -1,0 +1,203 @@
+---
+title: 'SaaS Identity'
+description: 'Understanding tenant isolation through JWT claims'
+---
+
+SaaS Identity is a core concept in Agentic Team OS that provides secure tenant isolation using JWT (JSON Web Token) claims. 
+
+This pattern ensures that each request is properly authenticated and scoped to the correct tenant.
+
+## Overview
+
+The SaaS Identity pattern uses JWT tokens with custom claims to:
+- Scope access to resources
+- Track user credits
+- Rate limit requests
+- Maintain security boundaries
+
+<img src="/images/saas-identity.png" alt="SaaS Identity Sequence Diagram" />
+
+The diagram above illustrates the flow of a request through the SaaS Identity system:
+1. The API receives and parses the incoming event with a JWT token
+2. The token is validated with the SaaS Identity Provider(s)
+3. The claims within the token are validated
+4. Finally, the usecase is executed with the validated identity context
+
+Let's break down how the SaaS identity system works in the agentic-api-template:
+
+### Core Components
+
+1. **SaaSIdentityVendingMachine Class** (`/packages/utils/src/tools/saas-identity.ts`):
+```typescript
+export class SaaSIdentityVendingMachine implements ISaasIdentityVendingMachine {
+    private jwtService: IJwtService;
+
+    constructor() {
+        this.jwtService = new ClerkService();
+    }
+
+    // Key methods:
+    async decodeJwt(token: string): Promise<JwtPayload>
+    async getValidUserFromAuthHeader(event: APIGatewayProxyEventV2): Promise<ValidUser | null>
+    async getValidUser(event: APIGatewayProxyEventV2): Promise<ValidUser>
+}
+```
+
+
+While initializing dependencies in the constructor violates the Dependency Inversion Principle, it's done here intentionally for simplicity. Since we know we'll only use Clerk as our JWT service, creating the instance directly reduces boilerplate and makes the code more straightforward to use - just instantiate and go!
+You are free to reverse this pattern or swap in a different JWT service like Okta or Auth0 if you need to. It will just need to implement the IJwtService interface.
+
+2. **JWT Service** (`/packages/utils/src/vendors/jwt-vendor.ts`):
+```typescript
+export class ClerkService implements IJwtService {
+    private clerkClient: ClerkClient;
+    
+    // Handles JWT validation and decoding
+    async validateToken(token: string): Promise<JwtPayload>
+    async decodeToken(token: string): Promise<JwtPayload>
+    async extractTokenFromHeader(event: APIGatewayProxyEventV2): Promise<string>
+}
+```
+### Metadata
+
+You can modify how a user is validated and what data is extracted from the JWT token.
+
+For example, here is the schema for a valid user:
+
+The keyId is from Unkey, and helps downstream services identity the users remaining credits for different requests. 
+
+The users keyId is added to the metadata of the JWT token on signup via a webhook. 
+
+When working with Clerk you can modify the claims on the JWT token to include this keyID. 
+
+This keyId is used to track the users remaining credits for different requests.
+
+2. **JWT Schema** (`/packages/utils/src/metadata/jwt.schema.ts`):
+```typescript
+export const DecodedJwtSchema = z.object({
+    sub: z.string(),
+    metadata: z.record(z.string(), z.any()).optional(),
+});
+```
+
+### Authentication Flow
+
+1. **Token Validation**:
+   - When a request comes in, the `getValidUser` method is called
+   - It first tries to validate via auth header using `getValidUserFromAuthHeader`
+   - If successful, returns a ValidUser object
+   - If not, throws an "Unauthorized" error
+
+2. **JWT Processing**:
+   - The ClerkService handles JWT token validation
+   - Extracts token from Authorization header
+   - Validates token using Clerk's verification system
+   - Decodes token payload for user information
+
+### Usage in Primary Adapters
+
+Below is an example of a Lambda Primary Adapter in the orchestrator that uses the SaaSIdentityVendingMachine to validate a user.
+
+```typescript
+import { SaaSIdentityVendingMachine } from '@utils/tools/saas-identity';
+
+export const requestValueStrategyAdapter = async (
+  event: APIGatewayProxyEventV2
+): Promise<APIGatewayProxyResultV2> => {
+  try {
+    const svm = new SaaSIdentityVendingMachine();
+    const validUser: ValidUser = await svm.getValidUser(event);
+
+    // Continue with backend logic if user is valid
+    // ...
+
+  } catch (error) {
+    return handleError(error);
+  }
+};
+```
+
+### Creating the SaaS Identity 
+
+#### 1. Adding the KeyId to the JWT Token
+
+When a user signs up, a webhook is handled by the control plane of the system. 
+
+Inside of the user module, the `registerUserAdapter` is called. 
+
+Here you will likely want to add any additional validation needed and in the usecase handler onboarding your user. 
+
+<img src="/images/signup-webhook.png" alt="Signup Webhook Configuration" />
+
+`/control-plane/user/adapters/primary/register-user.adapter.ts`
+
+
+```typescript
+
+export const registerUserAdapter = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> => {
+  try {
+    const clerkService = new ClerkService();
+    // Validate the webhook event
+    const evt = await clerkService.validateWebhookEvent(event);
+    switch (evt?.type) {
+      case 'user.created':
+        const parsedUserData = UserDetailsSchema.parse(evt.data);
+        const newUser: NewUser = {
+          userId: parsedUserData.id,
+        }
+        await registerUserUseCase(newUser);
+       ///...
+    }
+  }
+};
+
+
+```
+Go to the page on [Clerk](intgrations/clerk) for more information on how to configure the webhook for this flow.
+
+
+#### 2. Updating User's KeyID Properties
+
+When a user makes a purchase, a webhook is handled by the control plane of the system. 
+
+Inside of the billing module, the `checkoutSessionWebhookAdapter` is called. 
+
+Here you will likely want to add any additional validation needed and in the usecase handler updating the users keyId properties.
+
+This is where you can add credits to the users API key and update the keyId properties based on the purchase.
+
+<img src="/images/checkout-webhook.png" alt="Purchase Webhook Configuration" />
+
+`/control-plane/billing/adapters/primary/checkout-session-completed.adapter.ts`
+
+```typescript
+
+export const checkoutSessionWebhookAdapter = async (event: any) => {
+    console.log("---Checkout session webhook adapter---");
+    const signature = event.headers["stripe-signature"];
+    let stripeEvent;
+    try {
+        stripeEvent = await stripe.webhooks.constructEvent(event.body, signature, stripeWebhookSecret);   
+    } catch (err) {
+        console.error(`⚠️  Webhook signature verification failed.` , err);
+        return { statusCode: 400, body: "Invalid signature" };
+    }
+    const session = stripeEvent.data.object;
+    switch (stripeEvent.type) {
+        case "checkout.session.completed":
+            const metadataRefill = MetadataRefillSchema.parse(session.metadata);
+            const updateApiKeyCommand = {
+                keyId: metadataRefill.keyId,
+                refill: {
+                    interval: metadataRefill.interval,
+                    amount: parseInt(metadataRefill.amount),
+                    refillDay: parseInt(metadataRefill.refillDay)
+                }
+            };
+            await checkoutSessionCompletedUseCase(updateApiKeyCommand);
+            break;
+    }
+}
+```
+
+Go to the page [Setup Webhooks](/guides/setup-webhooks) for more information on how to configure the webhooks to enable this flow.

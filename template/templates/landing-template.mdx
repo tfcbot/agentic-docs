@@ -1,0 +1,222 @@
+---
+title: 'Landing Template'
+description: 'Template for building a landing page'
+---
+
+The Landing template is a Next.js application built with SST that serves as your product's public-facing website. It's designed for performance, SEO, and conversion optimization.
+
+You can find the full source code for the Landing template [here](https://github.com/tfcbot/agentic-landing-template).
+
+## Project Structure
+
+```bash
+agentic-landing-template/
+|-- app/                # Next.js app router pages
+|-- public/            # Static assets
+|-- sst.config.ts    # SST configuration
+|-- .env.*           # Environment configurations
+```
+
+Let's explore the key components of the landing template:
+
+1. **Application Structure (`/app`)**
+
+The source code follows Next.js 14+ app router conventions:
+
+```bash
+/app/
+|
+|-- blog/                     # Blog pages
+|   `-- page.tsx             # Blog listing page
+|
+|-- components/              # Reusable components
+|   |-- blog/               # Blog-specific components
+|   |   |-- BlogCard.tsx
+|   |   `-- __tests__/     # Component tests
+|   |
+|   |-- icons/             # Icon components
+|   |   `-- index.tsx
+|   |
+|   |-- layout/           # Layout components
+|   |   |-- Header.tsx
+|   |   `-- Footer.tsx
+|   |
+|   |-- sections/         # Landing page sections
+|   |   |-- Benefits.tsx
+|   |   |-- BlogSection.tsx
+|   |   |-- CTA.tsx
+|   |   |-- FAQ.tsx
+|   |   |-- Headaches.tsx
+|   |   |-- Hero.tsx
+|   |   |-- NotFor.tsx
+|   |   |-- Pricing.tsx
+|   |   |-- Timeline.tsx
+|   |   |-- WhoFor.tsx
+|   |   `-- icons.tsx
+|   |
+|   `-- ui/              # Base UI components
+|       `-- Pill.tsx
+|
+|-- types/               # TypeScript type definitions
+|   `-- blog.ts
+|
+|-- globals.css           # Global styles
+|-- layout.tsx            # Root layout
+|-- page.tsx              # Landing page
+```
+
+## Environment Configuration
+
+### Development
+
+Create a `.env.sandbox` file:
+
+```bash
+DOMAIN_NAME=<domain_name>
+CLOUDFLARE_API_TOKEN=<cloudflare_api_token>
+```
+
+## SST Configuration
+
+The landing template uses SST for deployment and infrastructure management. The configuration is defined in `sst.config.ts` and consists of several key aspects:
+
+### 1. App Configuration
+
+The base app configuration defines core settings for the SST application:
+
+```typescript:sst.config.ts
+export default $config({
+  app(input) {
+    return {
+      name: "landing",
+      removal: input?.stage === "production" ? "retain" : "remove",
+      home: "aws",
+      providers: {
+        cloudflare: {
+          version: "5.40.1",
+          apiToken: process.env.CLOUDFLARE_API_TOKEN,
+        }
+      }
+    };
+  }
+});
+```
+
+- `name`: Defines the app name used to prefix resources
+- `removal`: Retains resources in production, removes them in other stages
+- `home`: Uses AWS as the primary provider
+- `providers`: Configures Cloudflare for DNS management
+
+### 2. Domain Configuration
+
+The domain configuration handles environment-specific domains and DNS settings:
+
+```typescript:sst.config.ts
+async run() {
+  if (!process.env.DOMAIN_NAME) {
+    throw new Error("DOMAIN_NAME environment variable is required");
+  }
+  
+  const domainName = $app.stage === "prod"
+    ? process.env.DOMAIN_NAME
+    : `${$app.stage}.${process.env.DOMAIN_NAME}`;
+  const redirectDomainName = $app.stage === "prod"
+    ? `www.${process.env.DOMAIN_NAME}`
+    : `www.${$app.stage}.${process.env.DOMAIN_NAME}`;
+  const appDomainName = $app.stage === "prod"
+    ? `app.${process.env.DOMAIN_NAME}`
+    : `${$app.stage}-app.${process.env.DOMAIN_NAME}`;
+  
+  const web = new sst.aws.Nextjs("MyWeb", {
+    domain: {
+      name: domainName,
+      redirects: [redirectDomainName],
+      dns: sst.cloudflare.dns({
+        transform: {
+          record: (record) => {
+            if (record.name === redirectDomainName) {
+              record.proxied = true;
+              record.ttl = 1;
+            }
+          },
+        },
+      }),
+    },
+    environment: {
+      NEXT_PUBLIC_APP_URL: `https://${appDomainName}`,
+    },
+  });
+  return {
+    web: web.url,
+  }
+}
+```
+
+- Automatically generates stage-specific subdomains
+- Configures www to apex domain redirects
+- Sets up Cloudflare DNS with proper proxying
+- Defines environment variables for the app URL
+
+### 3. Auto-deployment Configuration
+
+The autodeploy configuration manages deployment rules for different branches:
+
+```typescript:sst.config.ts
+console: {
+  autodeploy: {
+    target(event) {
+      if (event.type === "branch" && event.action === "pushed") {
+        switch (event.branch) {
+          case "sandbox":
+            return {
+              stage: "sandbox",
+              runner: { engine: "codebuild", compute: "large" }
+            };
+          case "dev":
+            return {
+              stage: "dev",
+              runner: { engine: "codebuild", compute: "large" }
+            };
+          case "main":
+            return {
+              stage: "prod",
+              runner: { engine: "codebuild", compute: "large" }
+            };
+          default:
+            console.log(`Not a standard branch: ${event.branch}`);
+            return {
+              stage: event.branch
+            }
+        }
+      }
+    }
+  }
+}
+```
+
+Defines automatic deployment rules:
+- `sandbox` branch → sandbox stage
+- `dev` branch → dev stage  
+- `main` branch → prod stage
+- Other branches → stage named after branch
+
+Each deployment uses CodeBuild with large compute resources for optimal build performance.
+
+For more details on SST configuration options, refer to the [SST Config Documentation](https://sst.dev/docs/reference/config/).
+
+## Deployment
+
+The landing template supports multiple deployment options:
+
+### SST Deployment
+
+```bash
+# Deploy to sandbox
+sst deploy --stage sandbox
+```
+
+Deployment to production is handled by SST Autodeploy when you do a PR from dev to main.
+
+
+
+
