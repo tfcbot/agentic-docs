@@ -1,0 +1,222 @@
+---
+title: 'Custom Domain Setup'
+description: 'Configure your custom domain for Agentic Team OS'
+---
+
+Learn how to set up and configure custom domains for your Agentic Team OS deployment. This guide covers domain structure, DNS configuration, and environment-specific settings.
+
+## Prerequisites
+
+1. Purchase a domain through Cloudflare or transfer your exiting domain to Cloudflare
+2. Set the domain SSL/TLS encryption mode to "Full Strict"
+3. Generate a Cloudflare API key with the following permissions:
+    - Access: Organizations, Identity Providers, and Groups:Read
+    - Account Settings:Read
+    - Account Settings:Edit
+    - Account Settings:Edit
+
+<Note>
+When setting up DNS records for the first time, the initial deployment through SST may be slow because it needs to bootstrap the DNS records. Subsequent updates will be alot faster.
+</Note>
+
+## Domain Configuration
+
+Each template (API, Dashboard, Landing) can be configured with its own subdomain:
+
+The url structure is as follows:
+
+```bash
+# Common domain structure
+api.yourdomain.com    # API Template
+app.yourdomain.com    # Dashboard Template
+www.yourdomain.com    # Landing Page Template
+```
+
+## Environment sepcific configuraitons 
+
+
+```
+{stage}-api.yourdomain.com # API Template
+{stage}-app.yourdomain.com # Dashboard Template
+www.{stage}-yourdomain.com # Landing Page Template
+```
+
+
+## Under the Hood 
+
+SST is used to automate the confguration of your custom domains. 
+
+You will need to add cloudflare as a provider and make the API key environment avilable. 
+
+This is done for you in each template. 
+
+See below for the configuration of each template. 
+
+
+
+### Add Your Custom Domain to the API Template
+
+To add your custom domain to the API template, you need to set the `CLOUDFLARE_API_TOKEN` and `BASE_DOMAIN` environment variables in your `.env.{stage}` file.
+```bash
+CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
+BASE_DOMAIN=yourdomain.com
+```
+
+Below breaks down the configuration of the API template that automatically configures the custom domain. 
+1. Provider Configuration:
+The `sst.config.ts` file configures Cloudflare as a provider alongside AWS:
+
+```typescript
+providers: {
+  aws: {
+    region: "us-east-1",
+  },
+  "aws-native": {
+    region: "us-east-1",
+  },
+  cloudflare: {
+    version: "5.42.0",
+    apiToken: process.env.CLOUDFLARE_API_TOKEN,
+  }
+}
+```
+
+2. Custom Domain Configuration:
+In the API configuration file, the custom domain is set up using SST's ApiGatewayV2 construct with Cloudflare DNS integration:
+
+Update the environment variables in the `env` file with your domain name and cloudflare api token. 
+
+```bash
+CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
+BASE_DOMAIN=yourdomain.com
+```
+This will be used by `sst.config.ts` to construct the domain name. 
+```typescript
+export const apiDomainName = $app.stage === "prod" 
+  ? `api.${BASE_DOMAIN}`
+  : `${$app.stage}-api.${BASE_DOMAIN}`;
+  
+
+export const api = new sst.aws.ApiGatewayV2('BackendApi', {
+  domain: {
+    name: apiDomainName,
+    path: "v1",
+    dns: sst.cloudflare.dns({
+      transform: {
+        record: (record) => {
+          if (record.name === apiDomainName && record.type !== "CAA") {
+            record.proxied = true;
+            record.ttl = 1;
+          }
+        }
+      }
+    })
+  },
+  cors: {
+    allowOrigins: [
+      `https://${appDomainName}`,
+      "http://localhost:3000",
+    ]
+  }
+});
+```
+
+### Add Your Custom Domain to the Dashboard Template
+
+To add your custom domain to the Dashboard template, you need to set the `CLOUDFLARE_API_TOKEN` and `BASE_DOMAIN` environment variables in your `.env.{stage}` file.
+
+```bash
+CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
+BASE_DOMAIN=yourdomain.com
+```
+
+Below breaks down the configuration of the Dashboard template that automatically configures the custom domain. 
+
+The `sst.config.ts` file configures the custom domain and Cloudflare provider:
+
+```typescript
+const baseDomain = process.env.BASE_DOMAIN;
+if (!baseDomain) {
+  throw new Error("BASE_DOMAIN environment variable is required");
+}
+
+const domainName = $app.stage === "production"
+  ? `app.${baseDomain}`
+  : `${$app.stage}-app.${baseDomain}`;
+
+const web = new sst.aws.Nextjs("MyWeb", {
+  domain: {
+    name: domainName,
+    dns: sst.cloudflare.dns({
+      transform: {
+        record: (record) => {
+          if (record.name === domainName && record.type !== "CAA") {
+            record.proxied = true;
+            record.ttl = 1;
+          }
+        },
+      },
+    }),
+  },
+  // ... existing configuration ...
+});
+```
+
+This configuration:
+- Sets up the dashboard subdomain (e.g., app.yourdomain.com)
+- Configures stage-specific domains (e.g., dev-app.yourdomain.com)
+- Enables Cloudflare proxying for the domain
+- Sets appropriate TTL values
+- Automatically manages DNS records through Cloudflare
+
+The domain structure follows these patterns:
+- Production: `app.yourdomain.com`
+- Other stages: `{stage}-app.yourdomain.com`
+
+### Landing Page Template
+
+To add your custom domain to the Landing Page template, you need to set the `CLOUDFLARE_API_TOKEN` and `BASE_DOMAIN` environment variables in your `.env.{stage}` file.
+
+```bash
+CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
+BASE_DOMAIN=yourdomain.com
+```
+
+Below breaks down the configuration of the Landing Page template that automatically configures the custom domain. 
+
+The `sst.config.ts` file handles domain configuration:
+
+```typescript
+    const domainName = $app.stage === "prod"
+    ? process.env.DOMAIN_NAME
+    : `${$app.stage}-${process.env.DOMAIN_NAME}`;
+
+    const redirectDomainName = `www.${domainName}`
+
+    const appDomainName = $app.stage === "prod"
+    ? `app.${process.env.DOMAIN_NAME}`
+    : `${$app.stage}-app.${process.env.DOMAIN_NAME}`;
+
+const web = new sst.aws.Nextjs("MyWeb", {
+  domain: {
+    name: domainName,
+    redirects: [redirectDomainName],
+    dns: sst.cloudflare.dns({
+      transform: {
+        record: (record) => {
+          if (record.name === redirectDomainName) {
+            record.proxied = true;
+            record.ttl = 1;
+          }
+        },
+      },
+    }),
+  },
+});
+```
+
+This configuration:
+- Sets up the main domain and www subdomain
+- Configures stage-specific domains (e.g., dev.yourdomain.com)
+- Enables Cloudflare proxying for the www subdomain
+- Automatically manages DNS records through Cloudflare
